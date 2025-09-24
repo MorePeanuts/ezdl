@@ -11,6 +11,7 @@ dependencies = [
   "matplotlib>=3.10.6",
   "torch>=2.6.0",
   "torchvision>=0.21.0",
+  "tqdm>=4.67.1",
 ]
 
 [tool.uv.sources]
@@ -39,5 +40,6 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "jupyter>=1.1.1",
     "pytest>=8.4.2",
 ]
