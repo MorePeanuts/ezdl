@@ -9,7 +9,8 @@ class TheVerdictDataset(Dataset):
     dataset_path = Path(__file__).parents[3] / 'datasets/the_verdict/the-verdict.txt'
     
     def __init__(self, tokenizer: Tokenizer, max_length: int, stride: int) -> None:
-        """Initialize 'The Verdict' dataset with the given tokenizer, maximum length, and stride.
+        """
+        Initialize 'The Verdict' dataset with the given tokenizer, maximum length, and stride.
         
         Args:
             tokenizer (Tokenizer): The tokenizer to use for encoding the text.
@@ -19,10 +20,7 @@ class TheVerdictDataset(Dataset):
         self.input_ids = []
         self.target_ids = []
         
-        assert self.dataset_path.exists(), f"Dataset file {self.dataset_path} does not exist."
-        with open(self.dataset_path, 'r', encoding='utf-8') as f:
-            raw_text = f.read()
-        
+        raw_text = self.get_raw_text()
         token_ids = tokenizer.encode(raw_text)
         
         for i in range(0, len(token_ids) - max_length, stride):
@@ -37,3 +35,9 @@ class TheVerdictDataset(Dataset):
     def __getitem__(self, idx):
         return self.input_ids[idx], self.target_ids[idx]
         
+    @staticmethod
+    def get_raw_text():
+        assert TheVerdictDataset.dataset_path.exists(), f"Dataset file {TheVerdictDataset.dataset_path} does not exist."
+        with open(TheVerdictDataset.dataset_path, 'r', encoding='utf-8') as f:
+            raw_text = f.read()
+        return raw_text
