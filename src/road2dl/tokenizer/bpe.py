@@ -387,4 +387,19 @@ class BPETokenizerSimple:
             int or None: The ID of the token if it exists, otherwise None.
         """
         return self.inverse_vocab.get(token, None)
+
+
+def BPETokenizerHuggingFace():
+    try:
+        from transformers import GPT2Tokenizer
+        return GPT2Tokenizer.from_pretrained('gpt2')
+    except ImportError as e:
+        raise ImportError('transformers not installed, it is an optional dependency.') from e
     
+    
+def BPETokenizerHuggingFaceFast():
+    try:
+        from transformers import GPT2TokenizerFast
+        return GPT2TokenizerFast.from_pretrained('gpt2')
+    except ImportError as e:
+        raise ImportError('transformers not installed, it is an optional dependency.') from e

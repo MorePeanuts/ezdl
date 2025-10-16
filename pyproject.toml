@@ -15,14 +15,20 @@ dependencies = [
   "tqdm>=4.67.1",
 ]
 
+[project.optional-dependencies]
+transformers = [
+    "datasets>=4.2.0",
+    "transformers>=4.57.1",
+]
+
 [tool.uv.sources]
 torch = [
   { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
-  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu", marker = "sys_platform == 'linux'" },
 ]
 torchvision = [
   { index = "pytorch-cpu", marker = "sys_platform != 'linux'" },
-  { index = "pytorch-cu124", marker = "sys_platform == 'linux'" },
+  { index = "pytorch-cu", marker = "sys_platform == 'linux'" },
 ]
 
 [[tool.uv.index]]
@@ -30,8 +36,9 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
+# Please modify the index of torch for the CUDA version as needed.
 [[tool.uv.index]]
-name = "pytorch-cu124"
+name = "pytorch-cu"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
 
