@@ -216,9 +216,7 @@ class MultiHeadAttention(nn.Module):
         attn_scores.masked_fill_(mask, -torch.inf)
         attn_weights = torch.softmax(attn_scores / sqrt(d_k), dim=-1)
         attn_weights = self.dropout(attn_weights)
-        context_vecs = (attn_weights @ v).transpose(
-            1, 2
-        )  # Swap back num_heads and sequence_length
+        context_vecs = (attn_weights @ v).transpose(1, 2) # Swap back num_heads and sequence_length
 
         # Merge multiple heads into one dimension. Since context_vecs has undergone
         # transpose operation, it is necessary to first use contiguous to ensure that
