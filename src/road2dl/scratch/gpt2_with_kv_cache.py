@@ -171,8 +171,8 @@ class GPT2ModelForCausalLM(GPT2PreTrainedModel):
         self.model = GPT2Model(config)
         self.lm_head = nn.Linear(config.embd_dim, config.vocab_size, bias=False)
         
-    def forward(self, input_ids):
-        model_outputs = self.model(input_ids)
+    def forward(self, input_ids, use_cache=False):
+        model_outputs = self.model(input_ids, use_cache)
         logits = self.lm_head(model_outputs)
         
         return logits
@@ -181,7 +181,7 @@ class GPT2ModelForCausalLM(GPT2PreTrainedModel):
         self.model.reset_kv_cache()
         
         
-def generate_text_with_kv_cached(model, input_ids, max_new_tokens, context_length) -> torch.Tensor:
+def generate_text_with_kv_cache(model, input_ids, max_new_tokens, context_length) -> torch.Tensor:
     model.eval()
     
     with torch.no_grad():

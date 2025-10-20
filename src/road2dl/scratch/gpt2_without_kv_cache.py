@@ -112,7 +112,7 @@ class GPT2Model(GPT2PreTrainedModel):
     def forward(self, input_ids):
         bsz, seq_len = input_ids.shape
         tok_embds = self.tok_embd(input_ids)
-        pos_embds = self.pos_embd(torch.arange(seq_len))
+        pos_embds = self.pos_embd(torch.arange(seq_len, device=input_ids.device))
         x = tok_embds + pos_embds
         x = self.drop_embd(x)
         x = self.trf_blocks(x)
