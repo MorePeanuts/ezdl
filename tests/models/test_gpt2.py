@@ -7,7 +7,9 @@ from road2dl.models.gpt2 import (
     GPT2TransformerBlock,
     GPT2Model,
     GPT2ModelForCausalLM,
-    generate_text_simple
+    generate_text_simple,
+    text_to_token_ids,
+    token_ids_to_text,
 )
 
 
@@ -83,3 +85,16 @@ def test_generate_text_simple(tokenizer, config):
     assert len(output[0]) == 10
     decoded_text = tokenizer.decode(output.squeeze(0).tolist())
     print(decoded_text)
+
+
+def test_text_token_ids_transformation(tokenizer, config):
+    model = GPT2ModelForCausalLM(config)
+    start_context = 'Every effort moves you'
+    token_ids = generate_text_simple(
+        model=model,
+        input_ids=text_to_token_ids(start_context, tokenizer),
+        max_new_tokens=10,
+        context_length=config.context_length
+    )
+    output_text = token_ids_to_text(token_ids, tokenizer)
+    assert isinstance(output_text, str)
