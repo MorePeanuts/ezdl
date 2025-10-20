@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from tqdm import tqdm
 
 
 class Trainer:
@@ -18,4 +19,13 @@ class Trainer:
         optimizer_cls_and_kwargs = None,
     ):
         ...
+        
+    def train(
+        self,
+        resume_from_checkpoint: str | bool | None = None,
+    ):
+        if resume_from_checkpoint is not None:
+            raise NotImplementedError
+            
+        
         

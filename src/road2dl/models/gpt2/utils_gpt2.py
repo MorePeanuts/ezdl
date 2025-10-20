@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from deprecated import deprecated
-from ...tokenizer import Tokenizer
+from ...tokenizer.tokenizer_utils import Tokenizer
 
 
 @deprecated(

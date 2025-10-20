@@ -17,8 +17,12 @@ class GPT2PreTrainedModel(PreTrainedModel):
     Base class for GPT-2 models providing shared initialization and utility behavior.
     Acts as a thin wrapper around PreTrainedModel.
     """
-    def __init__(self, *args):
-        super().__init__()
+    
+    config_class = GPT2Config
+    base_model_prefix = 'transformer'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class GPT2LayerNorm(nn.Module):

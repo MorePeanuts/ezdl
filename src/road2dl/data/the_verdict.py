@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 from torch.utils.data import Dataset
-from ..tokenizer import Tokenizer
+from ..tokenizer.tokenizer_utils import Tokenizer
 
 
 class TheVerdictDataset(Dataset):

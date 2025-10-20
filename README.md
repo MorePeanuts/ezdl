@@ -6,7 +6,7 @@ This repository references several well-known deep learning/large model reposito
 
 At the same time, this repository is also a well-organized Python project managed by uv, which can be used to quickly build environments and run with uv.
 
-**Note:** This repository is still under development and may not be fully functional.
+**Note:** This repository is still under development and may not be fully functional. Although the repository imitates the organization of the transformers library, it only implements the most basic functions, and its adaptability and compatibility are far inferior to the corresponding functions in transformers.
 
 ## Repository Structure
 
