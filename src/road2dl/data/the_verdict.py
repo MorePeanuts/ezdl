@@ -46,8 +46,8 @@ class TheVerdictDataset(Dataset):
             import requests
             response = requests.get(TheVerdictDataset.dataset_url, timeout=30)
             response.raise_for_status()
-            with open(TheVerdictDataset.dataset_path, 'wb') as f:
-                f.write(response.content)
+            TheVerdictDataset.dataset_path.parent.mkdir(parents=True, exist_ok=True)
+            TheVerdictDataset.dataset_path.write_bytes(response.content)
 
         with open(TheVerdictDataset.dataset_path, 'r', encoding='utf-8') as f:
             raw_text = f.read()
