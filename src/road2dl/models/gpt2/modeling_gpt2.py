@@ -140,3 +140,6 @@ class GPT2ModelForCausalLM(GPT2PreTrainedModel):
         logits = self.lm_head(model_outputs)
 
         return logits
+
+class GPT2ModelForClassification(GPT2PreTrainedModel):
+    ...

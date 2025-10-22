@@ -1,4 +1,7 @@
-class GPT2Config:
+from ..modeling_utils import PreTrainedConfig
+
+
+class GPT2Config(PreTrainedConfig):
     """
     Configuration container for a GPT-2 style Transformer model.
 
@@ -32,6 +35,14 @@ class GPT2Config:
         kv_window_size (int): 
             The size of the window for cached keys/values when using a limited or sliding attention cache, controlling how many past tokens are retained for attention. # TODO When implementing dynamic caching, this parameter should be removed. Only used in scratch/gpt2_with_kv_cache_optimized.py now.
     """
+    
+    model_type = 'gpt2'
+    attribute_map = {
+        'hidden_size': 'embd_dim',
+        'max_position_embeddings': 'context_length',
+        'num_attention_heads': 'n_head',
+        'num_hidden_layers': 'n_layer'
+    }
 
     def __init__(
         self,

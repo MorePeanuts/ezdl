@@ -10,7 +10,7 @@ class Seq2SeqTrainer(Trainer):
 
 @deprecated(
     version='1.0.0',
-    reason='This function will be replaced by `Seq2SeqTrainer` class in the future.'
+    reason='This function is a simple implementation of gpt2 trainer, and will be replaced by `Seq2SeqTrainer` class in the future.'
 )
 def train_gpt2_simple(
     model,

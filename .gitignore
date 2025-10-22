@@ -12,3 +12,9 @@ wheels/
 
 # datasets
 datasets/
+
+# model parameters
+models/**/*.bin
+models/**/*.pt
+models/**/*.pth
+models/**/*.safetensors

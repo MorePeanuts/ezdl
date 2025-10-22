@@ -8,7 +8,8 @@ from torch.optim import AdamW
 from road2dl.trainer_seq2seq import train_gpt2_simple
 from road2dl.models.gpt2 import (
     GPT2Config,
-    GPT2ModelForCausalLM
+    GPT2ModelForCausalLM,
+    GPT2ModelForClassification,
 )
 from road2dl.device_utils import get_single_device
 from road2dl.data.the_verdict import TheVerdictDataset
