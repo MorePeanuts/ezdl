@@ -8,6 +8,7 @@ class GenerationConfig:
         self,
         # control the length of the output
         max_new_tokens: int = 20,
+        early_stopping: bool = False,
         stop_strings: str | list[str] | None = None,
         # control the generation strategy used
         do_sample: bool = False,
@@ -21,6 +22,7 @@ class GenerationConfig:
         top_k: int = 50,
         top_p: float = 1.0,
         repetition_penalty: float = 1.0,
+        no_repeat_ngram_size: int = 0,
         #  define the output variables of generate
         output_attentions: bool = False,
         output_hidden_states: bool = False,
@@ -30,6 +32,7 @@ class GenerationConfig:
         eos_token_id: int | None = None,
     ):
         self.max_new_tokens = max_new_tokens
+        self.early_stopping = early_stopping
         self.stop_strings = stop_strings
         self.do_sample = do_sample
         self.num_beams = num_beams
@@ -40,6 +43,7 @@ class GenerationConfig:
         self.top_k = top_k
         self.top_p = top_p
         self.repetition_penalty = repetition_penalty
+        self.no_repeat_ngram_size = no_repeat_ngram_size
         self.output_attentions = output_attentions
         self.output_hidden_states = output_hidden_states
         self.pad_token_id = pad_token_id

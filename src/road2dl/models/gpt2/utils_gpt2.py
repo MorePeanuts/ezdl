@@ -72,6 +72,18 @@ def token_ids_to_text(token_ids, tokenizer: Tokenizer):
     
     
 def calc_loss_batch(input_batch, target_batch, model, device):
+    """
+    Calculate the loss for a batch of input and target data.
+
+    Args:
+        input_batch (torch.Tensor): The input data.
+        target_batch (torch.Tensor): The target data.
+        model (torch.nn.Module): The model to use for prediction.
+        device (torch.device): The device to use for computation.
+
+    Returns:
+        torch.Tensor: The loss value.
+    """
     input_batch, target_batch = input_batch.to(device), target_batch.to(device)
     logits = model(input_batch)
     loss = F.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
@@ -79,6 +91,18 @@ def calc_loss_batch(input_batch, target_batch, model, device):
 
 
 def calc_loss_dataloader(dataloader, model, device, num_batches=None):
+    """
+    Calculate the loss for a dataloader.
+
+    Args:
+        dataloader (torch.utils.data.DataLoader): The dataloader to use for data.
+        model (torch.nn.Module): The model to use for prediction.
+        device (torch.device): The device to use for computation.
+        num_batches (int, optional): The number of batches to use for calculation. Defaults to None.
+
+    Returns:
+        float: The average loss value.
+    """
     total_loss = 0.
     if len(dataloader) == 0:
         return float("nan")

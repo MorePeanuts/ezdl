@@ -14,12 +14,30 @@ class PreTrainedConfig:
         cls,
         model_directory: str | os.PathLike,
     ):
+        """
+        Load a configuration from a directory.
+
+        Args:
+            model_directory (str | os.PathLike): Directory where the configuration is stored.
+
+        Returns:
+            PreTrainedConfig: The loaded configuration.
+        """
         json_file = Path(model_directory) / "config.json"
         assert json_file.exists(), f"{json_file} not exists."
         return cls.from_json_file(json_file)
 
     @classmethod
     def from_json_file(cls, json_file: str | os.PathLike):
+        """
+        Load a configuration from a JSON file.
+
+        Args:
+            json_file (str | os.PathLike): Path to the JSON file containing the configuration.
+
+        Returns:
+            PreTrainedConfig: The loaded configuration.
+        """
         config = cls()
         with open(json_file, "r") as f:
             config_dict = json.load(f)
@@ -62,6 +80,12 @@ class PreTrainedConfig:
             json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
     def update(self, config_dict: dict):
+        """
+        Update the configuration with the provided dictionary.
+
+        Args:
+            config_dict (dict): Dictionary containing the new configuration values.
+        """
         for k, v in config_dict.items():
             if not hasattr(self, k):
                 raise KeyError(f"{self.__class__.__name__} has no {k} attribute")
@@ -131,6 +155,9 @@ class PreTrainedModel(nn.Module):
     def from_default_config(
         cls
     ):
+        """
+        Create a model instance from the default configuration.
+        """
         config = cls.config_class() # type: ignore
         model = cls(config)
         for module in model.modules():
@@ -141,7 +168,10 @@ class PreTrainedModel(nn.Module):
     def from_pretrained(
         cls,
         model_directory: str | os.PathLike,
-    ): 
+    ):
+        """
+        Create a model instance from a pretrained model directory.
+        """
         config = cls.config_class.from_pretrained(model_directory) # type: ignore
         model = cls(config)
         
@@ -177,6 +207,14 @@ class PreTrainedModel(nn.Module):
         state_dict: dict | None = None,
         safe_serialization: bool = True,
     ): 
+        """
+        Save the model to a directory.
+        
+        Args:
+            save_directory (str | os.PathLike): The directory to save the model to.
+            state_dict (dict | None, optional): The state dictionary to save. Defaults to None.
+            safe_serialization (bool, optional): Whether to use safetensors. Defaults to True.
+        """
         self.config.save_pretrained(save_directory)
         if safe_serialization:
             try:
