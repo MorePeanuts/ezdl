@@ -14,7 +14,7 @@ from road2dl.models.gpt2 import GPT2ModelForCausalLM
 ), reason='Model not found')
 def test_model_from_pretrained():
     model_directory = Path(__file__).parents[2] / 'models/gpt2_124M'
-    model = GPT2ModelForCausalLM.from_pretrained(model_directory)
+    GPT2ModelForCausalLM.from_pretrained(model_directory)
     
     
 def test_model_save_pretrained_and_load():

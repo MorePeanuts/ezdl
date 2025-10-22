@@ -52,15 +52,15 @@ def test_gpt2_model(tokenizer, config):
     
     model = GPT2Model(config)
     model_outputs = model(batch)
-    assert tuple(model_outputs.shape) == (2, 4, config.n_embd)
+    assert tuple(model_outputs.shape) == (2, 4, config.embd_dim)
 
 
 def test_gpt2_124m_memory(config):
     model = GPT2ModelForCausalLM(config)
     total_params = sum(p.numel() for p in model.parameters())
     assert total_params == 163_009_536
-    assert model.model.tok_embd.weight.shape == torch.Size((config.vocab_size, config.n_embd))
-    assert model.lm_head.weight.shape == torch.Size((config.vocab_size, config.n_embd))
+    assert model.model.tok_embd.weight.shape == torch.Size((config.vocab_size, config.embd_dim))
+    assert model.lm_head.weight.shape == torch.Size((config.vocab_size, config.embd_dim))
     real_params = total_params - sum(p.numel() for p in model.lm_head.parameters())
     assert real_params == 124_412_160
     total_size_bytes = total_params * 4
@@ -82,7 +82,7 @@ def test_generate_text_simple(tokenizer, config):
         context_length=config.context_length
     )
     print("Output:", output)
-    assert len(output[0]) == 10
+    assert tuple(output.shape) == (1, 10)
     decoded_text = tokenizer.decode(output.squeeze(0).tolist())
     print(decoded_text)
 
