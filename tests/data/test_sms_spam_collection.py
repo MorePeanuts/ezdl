@@ -1,6 +1,6 @@
 import pytest
 import tiktoken
-from road2dl.data.sms_spam_collection import SMSSpamCollection
+from ezdl.data.sms_spam_collection import SMSSpamCollection
 
 
 @pytest.fixture

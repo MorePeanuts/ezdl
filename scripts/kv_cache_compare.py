@@ -1,12 +1,12 @@
 import torch
 import tiktoken
-from road2dl.benchmark.benchmark_utils import timer
-from road2dl.models.gpt2 import GPT2Config
+from ezdl.benchmark.benchmark_utils import timer
+from ezdl.models.gpt2 import GPT2Config
 
 
 def gpt2_inference_without_kv_cache():
     
-    from road2dl.scratch.gpt2_without_kv_cache import (
+    from ezdl.scratch.gpt2_without_kv_cache import (
         GPT2ModelForCausalLM,
         generate_text_simple
     )
@@ -38,7 +38,7 @@ def gpt2_inference_without_kv_cache():
     
 
 def gpt2_inference_with_kv_cache():
-    from road2dl.scratch.gpt2_with_kv_cache import (
+    from ezdl.scratch.gpt2_with_kv_cache import (
         GPT2ModelForCausalLM,
         generate_text_with_kv_cache
     )
@@ -70,7 +70,7 @@ def gpt2_inference_with_kv_cache():
     
     
 def gpt_inference_with_kv_cache_optimized():
-    from road2dl.scratch.gpt2_with_kv_cache_optimized import (
+    from ezdl.scratch.gpt2_with_kv_cache_optimized import (
         GPT2ModelForCausalLM,
         generate_text_with_kv_cache
     )

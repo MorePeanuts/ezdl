@@ -1,4 +1,4 @@
-from road2dl.data.fashion_mnist import FashionMNIST
+from ezdl.data.fashion_mnist import FashionMNIST
 from torch.utils.data import DataLoader
 
 

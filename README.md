@@ -1,4 +1,4 @@
-# Road to Deep Learning (Road2DL)
+# Easy Deep Learning (ezdl)
 
 ## Introduction
 
@@ -15,7 +15,7 @@ At the same time, this repository is also a well-organized Python project manage
 ├── docs
 ├── models
 ├── scripts
-├── src/road2dl
+├── src/ezdl
 │   ├── benchmark
 │   ├── data
 │   ├── evaluate

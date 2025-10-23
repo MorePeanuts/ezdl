@@ -1,7 +1,7 @@
 import torch
 import pytest
 import tiktoken
-from road2dl.models.gpt2 import (
+from ezdl.models.gpt2 import (
     GPT2Config,
     GPT2LayerNorm,
     GPT2TransformerBlock,

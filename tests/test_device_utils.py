@@ -1,8 +1,8 @@
 import pytest
 import torch
 import tiktoken
-from road2dl.device_utils import get_single_device
-from road2dl.models.gpt2 import GPT2Config, GPT2ModelForCausalLM
+from ezdl.device_utils import get_single_device
+from ezdl.models.gpt2 import GPT2Config, GPT2ModelForCausalLM
 
 
 @pytest.fixture

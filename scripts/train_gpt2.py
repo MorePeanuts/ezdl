@@ -5,15 +5,15 @@ from torch.utils.data import (
     random_split,
 )
 from torch.optim import AdamW
-from road2dl.trainer_seq2seq import train_gpt2_simple
-from road2dl.models.gpt2 import (
+from ezdl.trainer_seq2seq import train_gpt2_simple
+from ezdl.models.gpt2 import (
     GPT2Config,
     GPT2ModelForCausalLM,
     GPT2ModelForClassification,
 )
-from road2dl.device_utils import get_single_device
-from road2dl.data.the_verdict import TheVerdictDataset
-from road2dl.tokenizer.bpe import BPETokenizerTiktoken
+from ezdl.device_utils import get_single_device
+from ezdl.data.the_verdict import TheVerdictDataset
+from ezdl.tokenizer.bpe import BPETokenizerTiktoken
 
 
 if __name__ == '__main__':

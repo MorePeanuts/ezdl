@@ -1,6 +1,6 @@
 import pytest
 import torch
-from road2dl.scratch.self_attention import (
+from ezdl.scratch.self_attention import (
     SelfAttention,
     CausalAttention,
     MultiHeadAttentionWrapper,

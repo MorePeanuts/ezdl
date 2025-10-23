@@ -3,7 +3,7 @@ import pytest
 import tiktoken
 import tempfile
 from pathlib import Path
-from road2dl.models.gpt2 import GPT2ModelForCausalLM
+from ezdl.models.gpt2 import GPT2ModelForCausalLM
 
 
 @pytest.mark.skipif(condition=not (
