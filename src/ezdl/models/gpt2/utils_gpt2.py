@@ -71,7 +71,7 @@ def token_ids_to_text(token_ids, tokenizer: Tokenizer):
     return tokenizer.decode(flat.tolist())
     
     
-def calc_loss_batch(input_batch, target_batch, model, device):
+def calc_loss_batch(input_batch, target_batch, model, device, last_token_only=False):
     """
     Calculate the loss for a batch of input and target data.
 
@@ -80,17 +80,22 @@ def calc_loss_batch(input_batch, target_batch, model, device):
         target_batch (torch.Tensor): The target data.
         model (torch.nn.Module): The model to use for prediction.
         device (torch.device): The device to use for computation.
+        last_token_only (bool): Whether to calculate loss only for the last token. Defaults to False.
 
     Returns:
         torch.Tensor: The loss value.
     """
     input_batch, target_batch = input_batch.to(device), target_batch.to(device)
     logits = model(input_batch)
-    loss = F.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
+    if last_token_only:
+        logits = logits[:, -1, :]
+        loss = F.cross_entropy(logits, target_batch)
+    else:
+        loss = F.cross_entropy(logits.flatten(0, 1), target_batch.flatten())
     return loss
 
 
-def calc_loss_dataloader(dataloader, model, device, num_batches=None):
+def calc_loss_dataloader(dataloader, model, device, num_batches=None, last_token_only=False):
     """
     Calculate the loss for a dataloader.
 
@@ -99,6 +104,7 @@ def calc_loss_dataloader(dataloader, model, device, num_batches=None):
         model (torch.nn.Module): The model to use for prediction.
         device (torch.device): The device to use for computation.
         num_batches (int, optional): The number of batches to use for calculation. Defaults to None.
+        last_token_only (bool, optional): Whether to use only the last token for loss calculation. Defaults to False.
 
     Returns:
         float: The average loss value.
@@ -112,8 +118,43 @@ def calc_loss_dataloader(dataloader, model, device, num_batches=None):
         num_batches = min(num_batches, len(dataloader))
     for i, (input_batch, target_batch) in enumerate(dataloader):
         if i < num_batches:
-            loss = calc_loss_batch(input_batch, target_batch, model, device)
+            loss = calc_loss_batch(input_batch, target_batch, model, device, last_token_only)
             total_loss += loss.item()
         else:
             break
     return total_loss / num_batches
+    
+    
+def calc_accuracy_dataloader(dataloader, model, device, num_batches=None):
+    """
+    Calculate the accuracy for a dataloader.
+
+    Args:
+        dataloader (torch.utils.data.DataLoader): The dataloader to use for data.
+        model (torch.nn.Module): The model to use for prediction.
+        device (torch.device): The device to use for computation.
+        num_batches (int, optional): The number of batches to use for calculation. Defaults to None.
+
+    Returns:
+        float: The average accuracy value.
+    """
+    model.eval()
+    correct_predictions, num_samples = 0, 0
+    
+    if num_batches is None:
+        num_batches = len(dataloader)
+    else:
+        num_batches = min(num_batches, len(dataloader))
+        
+    for i, (input_batch, target_batch) in enumerate(dataloader):
+        if i < num_batches:
+            input_batch, target_batch = input_batch.to(device), target_batch.to(device)
+            
+            with torch.no_grad():
+                logits = model(input_batch)[:, -1]
+            predictions = torch.argmax(logits, dim=-1)
+            num_samples += predictions.size(0)
+            correct_predictions += (predictions == target_batch).sum().item()
+        else:
+            break 
+    return correct_predictions / num_samples

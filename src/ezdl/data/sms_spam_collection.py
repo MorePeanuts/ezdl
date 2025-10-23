@@ -19,6 +19,10 @@ class SMSSpamCollection(Dataset):
         'ham': 0,
         'spam': 1
     }
+    label_map_reverse = {
+        0: 'ham',
+        1: 'spam'
+    }
     
     def __init__(self, tokenizer: Tokenizer, max_length: int | None = None, pad_token_id=50256):
         self.data = SMSSpamCollection.get_balanced_dataframe()
@@ -96,4 +100,12 @@ class SMSSpamCollection(Dataset):
         balanced_df['label'] = balanced_df['label'].map(SMSSpamCollection.label_map) # type: ignore
         
         return balanced_df
+        
+    @classmethod
+    def digit2label(cls, digit):
+        return cls.label_map_reverse[digit]
+        
+    @classmethod
+    def label2digit(cls, label):
+        return cls.label_map[label]
         

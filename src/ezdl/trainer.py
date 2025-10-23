@@ -9,14 +9,17 @@ class Trainer:
         self,
         model: nn.Module | None = None,
         args = None,
+        data_collator = None,
         train_dataset = None,
         eval_dataset = None,
+        processing_class = None,
         model_init = None,
         compute_loss_func = None,
         compute_metrics = None,
         callbacks = None,
         optimizers = None,
         optimizer_cls_and_kwargs = None,
+        preprocess_logits_for_metrics = None
     ):
         ...
         

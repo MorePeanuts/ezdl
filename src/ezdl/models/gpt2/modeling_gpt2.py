@@ -141,5 +141,19 @@ class GPT2ModelForCausalLM(GPT2PreTrainedModel):
 
         return logits
 
+
 class GPT2ModelForClassification(GPT2PreTrainedModel):
-    ...
+    """
+    GPT-2 model for classification tasks. Wraps the GPT-2 backbone and applies
+    a linear head to produce logits for a specified number of labels.
+    """
+    def __init__(self, config: GPT2Config):
+        super().__init__(config)
+        self.model = GPT2Model(config)
+        self.class_head = nn.Linear(config.embd_dim, config.num_labels, bias=False)
+
+    def forward(self, input_ids):
+        model_outputs = self.model(input_ids)
+        logits = self.class_head(model_outputs)
+
+        return logits

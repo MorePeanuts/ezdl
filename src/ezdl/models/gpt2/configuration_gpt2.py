@@ -8,6 +8,8 @@ class GPT2Config(PreTrainedConfig):
     Parameters:
         vocab_size (int):
             The number of tokens in the vocabulary. Determines the size of the token embedding matrix.
+        num_labels (int):
+            The number of labels for classification tasks. Determines the size of the classification head.
         context_length (int):
             The maximum sequence length (n_positions) the model can process. Also dictates the size of positional embeddings and the attention mask dimensions.
         embd_dim (int):
@@ -47,6 +49,7 @@ class GPT2Config(PreTrainedConfig):
     def __init__(
         self,
         vocab_size: int = 50257,
+        num_labels: int = 2,
         context_length: int = 1024, # n_positions
         embd_dim: int = 768,
         n_head: int = 12,
@@ -62,6 +65,7 @@ class GPT2Config(PreTrainedConfig):
         kv_window_size: int = 256,
     ):
         self.vocab_size = vocab_size
+        self.num_labels = num_labels
         self.context_length = context_length
         self.embd_dim = embd_dim
         self.n_head = n_head

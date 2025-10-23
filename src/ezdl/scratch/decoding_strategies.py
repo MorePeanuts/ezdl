@@ -8,7 +8,6 @@ References:
 
 from typing import Literal
 import torch
-import numpy as np
 
 
 def greedy_sampling(logits, beams):
