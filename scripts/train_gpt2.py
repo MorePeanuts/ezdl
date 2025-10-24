@@ -184,7 +184,7 @@ def train_gpt2_instruction_fine_tuning():
     from pathlib import Path
     
     model_directory = Path(__file__).parents[1] / 'models/gpt2_124M'
-    model = GPT2ModelForClassification.from_pretrained(model_directory)
+    model = GPT2ModelForCausalLM.from_pretrained(model_directory)
     device = get_single_device('gpu')
     model.to(device)
     optimizer = AdamW(model.parameters(), lr=5e-5, weight_decay=0.1)
