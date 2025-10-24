@@ -21,6 +21,35 @@ def show_images(imgs, n_rows, n_cols, titles=None, scale=1.5):
     return axes
 
 
+def format_instruction(
+    entry: dict,
+    instruction_template: str | None = None, 
+    response_template: str | None = None,
+    instruction_key='instruction',
+    input_key='input',
+    output_key='output'
+):
+    if instruction_template is None:
+        instruction_template = (
+            "Below is an instruction that describes a task. "
+            "Write a response that appropriately completes the request."
+            "\n\n### Instruction:\n{instruction}"
+            "\n\n### Input:\n{input}"
+        )
+    if response_template is None:
+        response_template = "\n\n### Response:\n{output}"
+        
+    instruction_text = instruction_template.format(
+        instruction=entry.get(instruction_key, ''),
+        input=entry.get(input_key, ''),
+    )
+    response_text = response_template.format(
+        output=entry.get(output_key, '')
+    )
+    
+    return instruction_text, response_text
+
+
 class SyntheticRegressionData(Dataset):
     
     def __init__(self, w, b, noise=0.01, total_samples=2000, seed=42):

@@ -9,7 +9,7 @@ class FashionMNIST(Dataset):
     
     dataset_path = Path(__file__).parents[3] / 'datasets/fashion_mnist/'
     
-    def __init__(self, batch_size=64, resize=(28, 28), train=True):
+    def __init__(self, resize=(28, 28), train=True):
         super().__init__()
         trans = transforms.Compose([
             transforms.Resize(resize),
