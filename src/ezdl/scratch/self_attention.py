@@ -216,7 +216,9 @@ class MultiHeadAttention(nn.Module):
         attn_scores.masked_fill_(mask, -torch.inf)
         attn_weights = torch.softmax(attn_scores / sqrt(d_k), dim=-1)
         attn_weights = self.dropout(attn_weights)
-        context_vecs = (attn_weights @ v).transpose(1, 2) # Swap back num_heads and sequence_length
+        context_vecs = (attn_weights @ v).transpose(
+            1, 2
+        )  # Swap back num_heads and sequence_length
 
         # Merge multiple heads into one dimension. Since context_vecs has undergone
         # transpose operation, it is necessary to first use contiguous to ensure that
@@ -687,3 +689,224 @@ class FlashAttentionScratch(nn.Module):
         output = self.out_proj(output)
 
         return output
+
+
+class GroupedQueryAttention(nn.Module):
+    """
+    Grouped Query Attention (GQA) implementation.
+
+    Grouped Query Attention is a memory-efficient attention mechanism where multiple query
+    heads share the same key and value heads. This reduces the memory footprint and computational
+    cost compared to standard multi-head attention while maintaining model quality. The number
+    of key/value groups is typically smaller than the number of query heads, allowing multiple
+    query heads to attend to the same key/value representations.
+
+    This implementation supports caching for efficient autoregressive generation, where the
+    key and value states are cached and reused across multiple forward passes.
+
+    Input shape: (batch_size, sequence_length, d_in)
+    Output shape: (batch_size, sequence_length, d_out)
+    """
+
+    def __init__(self, d_in, d_out, dropout, num_heads, num_kv_groups, qkv_bias=False):
+        """
+        Initialize the GroupedQueryAttention module.
+
+        Args:
+            d_in (int): Input feature dimension per token.
+            d_out (int): Total output feature dimension; must be divisible by num_heads.
+            dropout (float): Dropout probability applied to attention weights.
+            num_heads (int): Total number of query heads.
+            num_kv_groups (int): Number of key/value groups; must divide num_heads.
+            qkv_bias (bool, optional): Whether to include bias in Q/K/V linear projections. Defaults to False.
+        """
+        super().__init__()
+        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert num_heads % num_kv_groups == 0, (
+            "num_heads must be divisible by num_kv_groups"
+        )
+
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
+        self.num_kv_groups = num_kv_groups
+        self.group_size = num_heads // num_kv_groups
+
+        self.W_k = nn.Linear(d_in, num_kv_groups * self.head_dim, bias=qkv_bias)
+        self.W_v = nn.Linear(d_in, num_kv_groups * self.head_dim, bias=qkv_bias)
+        self.W_q = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.out_proj = nn.Linear(d_out, d_out, bias=False)
+        self.dropout = nn.Dropout(dropout)
+
+        self.register_buffer("cache_k", None, persistent=False)
+        self.register_buffer("cache_v", None, persistent=False)
+        self.ptr = 0
+
+    def forward(self, x, use_cache=False):
+        bz, seq_len, _ = x.shape
+
+        q = self.W_q(x).view(bz, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
+        k = (
+            self.W_k(x)
+            .view(bz, seq_len, self.num_kv_groups, self.head_dim)
+            .transpose(1, 2)
+        )
+        v = (
+            self.W_v(x)
+            .view(bz, seq_len, self.num_kv_groups, self.head_dim)
+            .transpose(1, 2)
+        )
+
+        if use_cache:
+            if self.cache_k is None:
+                self.cache_k, self.cache_v = k, v
+            else:
+                self.cache_k = torch.cat([self.cache_k, k], dim=2)
+                self.cache_v = torch.cat([self.cache_v, v], dim=2)
+            k, v = self.cache_k, self.cache_v
+
+        # expand keys and values to match the number of heads
+        # shape (bz, num_heads, seq_len, head_dim)
+        k = k.repeat_interleave(self.group_size, dim=1)
+        v = v.repeat_interleave(self.group_size, dim=1)
+
+        attn_scores = q @ k.transpose(2, 3)
+        num_tokens_q = q.shape[-2]
+        num_tokens_k = k.shape[-2]
+        if use_cache:
+            q_positions = torch.arange(
+                self.prt,
+                self.ptr + num_tokens_q,
+                device=q.device,
+            )
+            self.ptr += num_tokens_q
+        else:
+            q_positions = torch.arange(num_tokens_q, device=q.device)
+
+        k_positions = torch.arange(num_tokens_k, device=q.device)
+        mask = q_positions.unsqueeze(-1) < k_positions.unsqueeze(0)
+
+        attn_scores = attn_scores.masked_fill(mask, -torch.inf)
+        attn_weights = torch.softmax(attn_scores / k.shape[-1] ** 0.5, dim=-1)
+        assert k.shape[-1] == self.head_dim
+        attn_weights = self.dropout(attn_weights)
+
+        context_vec = (attn_weights @ v).transpose(1, 2).contiguous()
+        context_vec = context_vec.view(bz, seq_len, self.d_out)
+        context_vec = self.out_proj(context_vec)
+
+        return context_vec
+
+    def reset_cache(self):
+        self.cache_k, self.cache_v = None, None
+        self.ptr = 0
+
+
+class MultiHeadLatentAttention(nn.Module):
+    """
+    Multi-Head Latent Attention (MLA) implementation.
+
+    Multi-Head Latent Attention is a memory-efficient attention mechanism that first
+    projects the input into a lower-dimensional latent space before computing keys
+    and values. This reduces the computational complexity and memory footprint while
+    maintaining the expressive power of standard multi-head attention. The queries
+    are computed directly from the input, while keys and values are computed through
+    a two-step process: input -> latent -> keys/values.
+
+    This implementation supports caching for efficient autoregressive generation, where
+    the latent representations are cached and reused across multiple forward passes.
+
+    Input shape: (batch_size, sequence_length, d_in)
+    Output shape: (batch_size, sequence_length, d_out)
+    """
+
+    def __init__(
+        self, d_in, d_out, dropout, num_heads, qkv_bias=False, latent_dim=None
+    ):
+        """
+        Initialize the MultiHeadLatentAttention module.
+
+        Args:
+            d_in (int): Input feature dimension per token.
+            d_out (int): Total output feature dimension; must be divisible by num_heads.
+            dropout (float): Dropout probability applied to attention weights.
+            num_heads (int): Number of attention heads.
+            qkv_bias (bool, optional): Whether to include bias in linear projections. Defaults to False.
+            latent_dim (int, optional): Dimension of the latent space for keys/values.
+                If None, defaults to max(16, d_out // 8). Defaults to None.
+        """
+        super().__init__()
+        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+
+        self.d_out = d_out
+        self.num_heads = num_heads
+        self.head_dim = d_out // num_heads
+        self.latent_dim = latent_dim if latent_dim else max(16, d_out // 8)
+
+        self.W_q = nn.Linear(d_in, d_out, bias=qkv_bias)
+        self.W_down_kv = nn.Linear(d_in, self.latent_dim, bias=qkv_bias)
+        self.W_up_k = nn.Linear(self.latent_dim, d_out, bias=qkv_bias)
+        self.W_up_v = nn.Linear(self.latent_dim, d_out, bias=qkv_bias)
+        self.out_proj = nn.Linear(d_out, d_out)
+        self.dropout = nn.Dropout(dropout)
+
+        self.register_buffer("cache_c_kv", None, persistent=False)
+        self.ptr = 0
+
+    def forward(self, x, use_cache=False):
+        bz, seq_len, _ = x.shape
+
+        q = self.W_q(x)
+        latent = self.W_down_kv(x)
+
+        if use_cache:
+            if self.cache_c_kv is not None:
+                latent = torch.cat([self.cache_c_kv, latent], dim=1)
+            self.cache_c_kv = latent
+
+        k = self.W_up_k(latent)
+        v = self.W_up_v(latent)
+
+        q = (
+            q.view(bz, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+            .contiguous()
+        )
+        k = (
+            k.view(bz, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+            .contiguous()
+        )
+        v = (
+            v.view(bz, seq_len, self.num_heads, self.head_dim)
+            .transpose(1, 2)
+            .contiguous()
+        )
+
+        attn_scores = q @ k.transpose(-2, -1)
+        num_tokens_q = q.shape[-2]
+        num_tokens_k = k.shape[-2]
+
+        if use_cache:
+            q_positions = torch.arange(
+                self.ptr, self.ptr + num_tokens_q, device=q.device
+            )
+            self.ptr += num_tokens_q
+        else:
+            q_positions = torch.arange(num_tokens_q, device=q.device)
+
+        k_positions = torch.arange(num_tokens_k, device=q.device)
+        mask_bool = q_positions.unsqueeze(-1) < k_positions.unsqueeze(0)
+
+        attn_scores.masked_fill_(mask_bool, -torch.inf)
+        attn_weights = torch.softmax(attn_scores / k.shape[-1] ** 0.5, dim=-1)
+        attn_weights = self.dropout(attn_weights)
+        context_vec = (attn_weights @ v).transpose(1, 2).contiguous()
+        context_vec = context_vec.view(bz, seq_len, self.d_out)
+        context_vec = self.out_proj(context_vec)
+
+        return context_vec
+
+    def reset_cache(self):
+        self.cache_c_kv = None
+        self.ptr = 0
