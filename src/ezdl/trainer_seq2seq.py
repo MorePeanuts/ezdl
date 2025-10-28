@@ -36,12 +36,12 @@ def train_gpt2_simple(
     train_losses, eval_losses, track_tokens_seen = [], [], []
     tokens_seen, global_step = 0, -1
     total_steps = num_epochs * len(train_dataloader)
-    train_bar = tqdm(total=total_steps)
+    pbar = tqdm(total=total_steps)
     
     # Main training loop
     for epoch in range(num_epochs):
         model.train()
-        train_bar.set_description(f'Training Epoch {epoch+1}/{num_epochs}')
+        pbar.set_description(f'Training Epoch {epoch+1}/{num_epochs}')
         
         for input_batch, target_batch in train_dataloader:
             optimizer.zero_grad()
@@ -50,11 +50,11 @@ def train_gpt2_simple(
             optimizer.step()
             tokens_seen += input_batch.numel() # max_length == stride only
             global_step += 1
-            train_bar.update(1)
+            pbar.update(1)
             
             if global_step % eval_freq == 0:
                 model.eval()
-                train_bar.set_description('Evaluating...')
+                pbar.set_description('Evaluating...')
                 with torch.no_grad():
                     train_loss = calc_loss_dataloader(
                         train_dataloader,
@@ -71,9 +71,10 @@ def train_gpt2_simple(
                 train_losses.append(train_loss)
                 eval_losses.append(eval_loss)
                 track_tokens_seen.append(tokens_seen)
-                train_bar.write(f'Ep {epoch+1} (Step {global_step:06d}): '
+                pbar.write(f'Ep {epoch+1} (Step {global_step:06d}): '
                     f'Train loss {train_loss:.3f}, Val loss {eval_loss:.3f}')
-                train_bar.set_description(f'Training Epoch {epoch+1}/{num_epochs}')
+                model.train()
+                pbar.set_description(f'Training Epoch {epoch+1}/{num_epochs}')
             
         model.eval()
         context_length = model.model.pos_embd.weight.shape[0]
@@ -83,7 +84,7 @@ def train_gpt2_simple(
         with torch.no_grad():
             token_ids = generate_text_simple(model, encoded_text, 50, context_length)
         decoded_text = token_ids_to_text(token_ids, tokenizer)
-        train_bar.write(decoded_text.replace('\n', ''))
+        pbar.write(decoded_text.replace('\n', ''))
     
     return train_losses, eval_losses, track_tokens_seen
                 
@@ -150,6 +151,7 @@ def train_gpt2_classifier_simple(
                 eval_losses.append(eval_loss)
                 pbar.write(f"Ep {epoch+1} (Step {global_step:06d}): "
                     f"Train loss {train_loss:.3f}, Val loss {eval_loss:.3f}")
+                model.train()
                 pbar.set_description(f'Training Epoch {epoch+1}/{num_epochs}')
                 
         model.eval()

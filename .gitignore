@@ -18,3 +18,7 @@ models/**/*.bin
 models/**/*.pt
 models/**/*.pth
 models/**/*.safetensors
+
+# coding editor
+.zed/
+.vscode/
