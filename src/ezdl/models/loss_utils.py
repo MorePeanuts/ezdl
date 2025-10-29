@@ -54,10 +54,31 @@ class CrossEntropyLoss(nn.Module):
         )
         
     def scratch_forward(self, input: Tensor, target: Tensor):
+        input = input[target != self.ignore_index, :]
+        target = target[target != self.ignore_index]
+        n, c = input.shape
+
+        # Handle empty case
+        if n == 0:
+            return torch.tensor(0.0, device=input.device, dtype=input.dtype)
+
+        # Create smoothed target distribution
+        smooth_target = torch.full_like(input, self.label_smoothing / (c - 1))
+        smooth_target[torch.arange(n), target] = 1 - self.label_smoothing
+
+        # Numerically stable log softmax: log(softmax(x)) = x - max(x) - log(sum(exp(x - max(x))))
         max_o = torch.max(input, dim=-1, keepdim=True).values
-        term2 = torch.log(torch.sum(torch.exp(input - max_o), dim=-1))
-        n = input.shape[0]
-        loss = term2 + max_o - input[torch.arange(n), target]
+        log_probs = input - max_o - torch.log(torch.sum(torch.exp(input - max_o), dim=-1, keepdim=True))
+
+        # Cross entropy with label smoothing: -Σ smooth_target * log_probs
+        loss = -torch.sum(smooth_target * log_probs, dim=-1)
+
+        # Apply class weights if provided
+        if self.weight is not None:
+            # Create weight matrix matching smooth_target shape
+            weight_matrix = self.weight.unsqueeze(0).expand(n, -1)
+            loss = torch.sum(smooth_target * weight_matrix * (-log_probs), dim=-1)
+
         match self.reduction:
             case 'mean':
                 loss = loss.mean()

@@ -17,6 +17,7 @@ from ezdl.scratch.linear_model import (
 from ezdl.optimizer.gredient_descent import NaiveSGD
 from ezdl.models.loss_utils import MSELoss, CrossEntropyLoss
 from ezdl.device_utils import get_single_device
+from ezdl.plot_utils import plot_loss, plot_loss_and_acc
 
 
 def train_linear_regression_on_synthetic_data(naive_optim=False):
@@ -58,15 +59,7 @@ def train_linear_regression_on_synthetic_data(naive_optim=False):
         eval_freq=8
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, ax1 = plt.subplots(figsize=(5, 3))
-    ax1.plot(epochs_seen, train_losses, label='Training loss')
-    ax1.plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    ax1.set_xlabel('Epochs')
-    ax1.set_ylabel('Loss')
-    ax1.legend(loc='upper right')
-    fig.tight_layout()
-    plt.show()
+    plot_loss(num_epochs, train_losses, eval_losses)
     
     
 def train_naive_softmax_regression_on_fashion_mnist():
@@ -104,21 +97,7 @@ def train_naive_softmax_regression_on_fashion_mnist():
         eval_freq=128
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    axes[0].plot(epochs_seen, train_losses, label='Training loss')
-    axes[0].plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    axes[0].set_xlabel('Epochs')
-    axes[0].set_ylabel('Loss')
-    
-    epochs_seen = torch.linspace(0, num_epochs, len(train_accs))
-    axes[1].plot(epochs_seen, train_accs, label='Training acc')
-    axes[1].plot(epochs_seen, eval_accs, linestyle='-.', label='Evaluation acc')
-    axes[1].set_xlabel('Epochs')
-    axes[1].set_ylabel('Acc')
-    
-    fig.tight_layout()
-    plt.show()
+    plot_loss_and_acc(num_epochs, train_losses, eval_losses, train_accs, eval_accs)
     
     
 def train_softmax_regression_on_fashion_mnist():
@@ -157,21 +136,7 @@ def train_softmax_regression_on_fashion_mnist():
         eval_freq=128
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    axes[0].plot(epochs_seen, train_losses, label='Training loss')
-    axes[0].plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    axes[0].set_xlabel('Epochs')
-    axes[0].set_ylabel('Loss')
-    
-    epochs_seen = torch.linspace(0, num_epochs, len(train_accs))
-    axes[1].plot(epochs_seen, train_accs, label='Training acc')
-    axes[1].plot(epochs_seen, eval_accs, linestyle='-.', label='Evaluation acc')
-    axes[1].set_xlabel('Epochs')
-    axes[1].set_ylabel('Acc')
-    
-    fig.tight_layout()
-    plt.show()
+    plot_loss_and_acc(num_epochs, train_losses, eval_losses, train_accs, eval_accs)
     
     
 def train_mlp_classifier_on_fashion_mnist():

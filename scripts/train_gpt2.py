@@ -22,6 +22,7 @@ from ezdl.data.the_verdict import TheVerdictDataset
 from ezdl.data.sms_spam_collection import SMSSpamCollection
 from ezdl.data.demo_instruction import DemoInstructionDataset
 from ezdl.tokenizer.bpe import BPETokenizerTiktoken
+from ezdl.plot_utils import plot_loss, plot_loss_and_acc
 
 
 def train_gpt2_for_generation():
@@ -64,18 +65,7 @@ def train_gpt2_for_generation():
         tokenizer=tokenizer
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, ax1 = plt.subplots(figsize=(5, 3))
-    ax1.plot(epochs_seen, train_losses, label='Training loss')
-    ax1.plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    ax1.set_xlabel('Epochs')
-    ax1.set_ylabel('Loss')
-    ax1.legend(loc='upper right')
-    ax2 = ax1.twiny()
-    ax2.plot(tokens_seen, train_losses, alpha=0)
-    ax2.set_xlabel('Tokens seen')
-    fig.tight_layout()
-    plt.show()
+    plot_loss(num_epochs, train_losses, eval_losses, tokens_seen)
     
     
 def train_gpt2_for_classification():
@@ -125,27 +115,7 @@ def train_gpt2_for_classification():
         eval_iter=5
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    axes[0].plot(epochs_seen, train_losses, label='Training loss')
-    axes[0].plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    axes[0].set_xlabel('Epochs')
-    axes[0].set_ylabel('Loss')
-    ax0_t = axes[0].twiny()
-    ax0_t.plot(torch.linspace(0, samples_seen, len(train_losses)), train_losses, alpha=0)
-    ax0_t.set_xlabel('Samples seen')
-    
-    epochs_seen = torch.linspace(0, num_epochs, len(train_accs))
-    axes[1].plot(epochs_seen, train_accs, label='Training acc')
-    axes[1].plot(epochs_seen, eval_accs, linestyle='-.', label='Evaluation acc')
-    axes[1].set_xlabel('Epochs')
-    axes[1].set_ylabel('Acc')
-    ax1_t = axes[1].twiny()
-    ax1_t.plot(torch.linspace(0, samples_seen, len(train_accs)), train_accs, alpha=0)
-    ax1_t.set_xlabel('Samples seen')
-    
-    fig.tight_layout()
-    plt.show()
+    plot_loss_and_acc(num_epochs, train_losses, eval_losses, train_accs, eval_accs, samples_seen)
     
     test_acc = calc_accuracy_dataloader(
         test_dataloader,
@@ -232,18 +202,7 @@ def train_gpt2_instruction_fine_tuning():
         tokenizer=tokenizer
     )
     
-    epochs_seen = torch.linspace(0, num_epochs, len(train_losses))
-    fig, ax1 = plt.subplots(figsize=(5, 3))
-    ax1.plot(epochs_seen, train_losses, label='Training loss')
-    ax1.plot(epochs_seen, eval_losses, linestyle='-.', label='Evaluation loss')
-    ax1.set_xlabel('Epochs')
-    ax1.set_ylabel('Loss')
-    ax1.legend(loc='upper right')
-    ax2 = ax1.twiny()
-    ax2.plot(tokens_seen, train_losses, alpha=0)
-    ax2.set_xlabel('Tokens seen')
-    fig.tight_layout()
-    plt.show()
+    plot_loss(num_epochs, train_losses, eval_losses, tokens_seen)
     
     
 def main(
