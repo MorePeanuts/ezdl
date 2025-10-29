@@ -1,6 +1,7 @@
 import torch
+import typer
 import torch.nn as nn
-import matplotlib.pyplot as plt
+from typing import Literal, Annotated
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from ezdl.trainer import (
@@ -12,7 +13,8 @@ from ezdl.data.fashion_mnist import FashionMNIST
 from ezdl.scratch.linear_model import (
     LinearRegression,
     MultiLinearRegression,
-    NaiveSoftmaxRegression
+    NaiveSoftmaxRegression,
+    MLPForClassification
 )
 from ezdl.optimizer.gredient_descent import NaiveSGD
 from ezdl.models.loss_utils import MSELoss, CrossEntropyLoss
@@ -110,7 +112,7 @@ def train_softmax_regression_on_fashion_mnist():
     )
     model.to(device)
     loss = CrossEntropyLoss()
-    loss.forward = loss.scratch_forward
+    # loss.forward = loss.scratch_forward
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     num_epochs = 10
     train_dataloader = DataLoader(
@@ -140,8 +142,69 @@ def train_softmax_regression_on_fashion_mnist():
     
     
 def train_mlp_classifier_on_fashion_mnist():
-    ...
+    device = get_single_device('gpu')
+    train_data = FashionMNIST()
+    eval_data = FashionMNIST(train=False)
+    model = nn.Sequential(
+        nn.Flatten(),
+        MLPForClassification(
+            in_features=28*28,
+            num_classes=10,
+            hidden_dim=256,
+        )
+    )
+    model.to(device)
+    loss = CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    num_epochs = 10
+    train_dataloader = DataLoader(
+        train_data, 
+        batch_size=256, 
+        shuffle=True,
+        drop_last=True,
+    )
+    eval_dataloader = DataLoader(
+        eval_data,
+        batch_size=256,
+        shuffle=False,
+        drop_last=False
+    )
+    train_losses, eval_losses, train_accs, eval_accs = train_classification_model_simple(
+        model,
+        train_dataloader,
+        eval_dataloader,
+        optimizer,
+        loss,
+        device, 
+        num_epochs,
+        eval_freq=128
+    )
+    
+    plot_loss_and_acc(num_epochs, train_losses, eval_losses, train_accs, eval_accs)
+    
+    
+def main(
+    task: Annotated[Literal['linear-regression', 'softmax-classifier', 'mlp-classifier'],
+        typer.Argument(
+            help="The task to train the model on"
+        )],
+    naive: Annotated[bool, typer.Option(help="Use naive implementation")] = False
+):
+    """
+    Train linear model (linear-regression, softmax-classifier, mlp-classifier).
+    """
+    match (task, naive):
+        case ('linear-regression', _):
+            train_linear_regression_on_synthetic_data(naive)
+        case ('softmax-classifier', False):
+            train_softmax_regression_on_fashion_mnist()
+        case ('softmax-classifier', True):
+            train_naive_softmax_regression_on_fashion_mnist()
+        case ('mlp-classifier', _):
+            train_mlp_classifier_on_fashion_mnist()
+        case _:
+            raise ValueError(f"Invalid task: {task}")
     
     
 if __name__ == '__main__':
-    train_softmax_regression_on_fashion_mnist()
+    typer.run(main)
