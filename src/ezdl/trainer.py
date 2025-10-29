@@ -72,7 +72,7 @@ def train_regression_model_simple(
             global_step += 1
             pbar.update(1)
             
-            if global_step % eval_freq == 0:
+            if global_step % eval_freq == 0 or global_step == total_steps:
                 model.eval()
                 pbar.set_description('Evaluating...')
                 
@@ -115,7 +115,7 @@ def train_classification_model_simple(
     eval_freq=None,
     eval_iter=None,
 ):  
-    print(f'Training classifier on {device}...')
+    print(f'Training classifier {model} on {device}...')
     
     eval_freq = len(train_dataloader) if eval_freq is None else eval_freq
     eval_iter = len(eval_dataloader) if eval_iter is None else eval_iter
@@ -147,7 +147,7 @@ def train_classification_model_simple(
             acc_counter[0] += torch.sum(preds == y).item()
             acc_counter[1] += y.size(0)
             
-            if global_step % eval_freq == 0:
+            if global_step % eval_freq == 0 or global_step == total_steps:
                 model.eval()
                 pbar.set_description('Evaluating...')
                 

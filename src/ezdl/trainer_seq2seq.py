@@ -52,7 +52,7 @@ def train_gpt2_simple(
             global_step += 1
             pbar.update(1)
             
-            if global_step % eval_freq == 0:
+            if global_step % eval_freq == 0 or global_step == total_steps:
                 model.eval()
                 pbar.set_description('Evaluating...')
                 with torch.no_grad():
@@ -129,7 +129,7 @@ def train_gpt2_classifier_simple(
             global_step += 1
             pbar.update(1)
             
-            if global_step % eval_freq == 0:
+            if global_step % eval_freq == 0 or global_step == total_steps:
                 model.eval()
                 pbar.set_description('Evaluating...')
                 with torch.no_grad():
