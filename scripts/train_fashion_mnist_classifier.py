@@ -11,6 +11,7 @@ from ezdl.scratch.linear_model import (
 )
 from ezdl.models.lenet import LeNetModelForClassification
 from ezdl.models.alexnet import AlexNetModelForClassification, AlexNetConfig
+from ezdl.models.vgg import VGGModelForClassification, VGGConfig
 from ezdl.models.loss_utils import CrossEntropyLoss
 from ezdl.trainer import train_classification_model_simple
 from ezdl.device_utils import get_single_device
@@ -119,8 +120,24 @@ def train_alexnet_classifier():
     )        
     
     
+def train_vgg_classifier():
+    config = VGGConfig(
+        num_classes=10,
+        in_features=[1, 224, 224],
+    )
+    model = VGGModelForClassification(config)
+    train_classifier(
+        model,
+        lr=0.01,
+        num_epochs=10,
+        resize=(224, 224),
+        batch_size=128,
+        eval_freq=256,
+    )               
+    
+    
 def main(
-    task: Annotated[Literal["softmax", "mlp", "lenet", "alexnet"], typer.Argument(help="The task to train.")],
+    task: Annotated[Literal["softmax", "mlp", "lenet", "alexnet", "vgg"], typer.Argument(help="The task to train.")],
 ):
     match task:
         case 'softmax':
@@ -131,6 +148,8 @@ def main(
             train_lenet_classifier()
         case 'alexnet':
             train_alexnet_classifier()
+        case 'vgg':
+            train_vgg_classifier()
         case _:
             raise ValueError(f"Invalid task: {task}")
             
