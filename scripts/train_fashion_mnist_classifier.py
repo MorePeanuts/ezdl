@@ -13,6 +13,7 @@ from ezdl.models.lenet import LeNetModelForClassification
 from ezdl.models.alexnet import AlexNetModelForClassification, AlexNetConfig
 from ezdl.models.vgg import VGGModelForClassification, VGGConfig
 from ezdl.models.nin import NiNModelForClassification, NiNConfig
+from ezdl.models.googlenet import GoogLeNetModelForClassification, GoogLeNetConfig
 from ezdl.models.loss_utils import CrossEntropyLoss
 from ezdl.trainer import train_classification_model_simple
 from ezdl.device_utils import get_single_device
@@ -153,8 +154,24 @@ def train_nin_classifier():
     )    
     
     
+def train_googlenet_classifier():
+    config = GoogLeNetConfig(
+        num_classes=10,
+        in_features=[1, 224, 224],
+    )
+    model = GoogLeNetModelForClassification(config)
+    train_classifier(
+        model,
+        lr=0.01,
+        num_epochs=10,
+        resize=(224, 224),
+        batch_size=128,
+        eval_freq=256,
+    )    
+    
+    
 def main(
-    task: Annotated[Literal["softmax", "mlp", "lenet", "alexnet", "vgg", "nin"], typer.Argument(help="The task to train.")],
+    task: Annotated[Literal["softmax", "mlp", "lenet", "alexnet", "vgg", "nin", "googlenet"], typer.Argument(help="The task to train.")],
 ):
     match task:
         case 'softmax':
@@ -169,10 +186,11 @@ def main(
             train_vgg_classifier()
         case 'nin':
             train_nin_classifier()
+        case 'googlenet':
+            train_googlenet_classifier()
         case _:
             raise ValueError(f"Invalid task: {task}")
             
             
 if __name__ == "__main__":
-    # typer.run(main)
-    train_nin_classifier()
+    typer.run(main)
