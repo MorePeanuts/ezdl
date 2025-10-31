@@ -250,7 +250,7 @@ class LlamaGroupedQueryAttention(nn.Module):
         if past_key_values is not None:
             # sin and cos are specific to RoPE models; cache_position needed for the static cache
             cache_kwargs = {'sin': sin, 'cos': cos, 'cache_position': cache_position}
-            key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, **cache_kwargs)
+            key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, cache_kwargs)
         
         attention_forward = eager_attention_forward
         
