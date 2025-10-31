@@ -2,7 +2,7 @@ import torch
 import typer
 import torch.nn as nn
 from typing import Literal, Annotated
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from ezdl.trainer import (
     train_regression_model_simple,
@@ -37,6 +37,8 @@ def train_linear_regression_on_synthetic_data(naive_optim=False):
     train_data, eval_data = train_test_split(
         data, test_size=0.1, train_size=0.9, random_state=42
     )
+    assert isinstance(train_data, Dataset)
+    assert isinstance(eval_data, Dataset)
     train_dataloader = DataLoader(
         train_data, 
         batch_size=32, 

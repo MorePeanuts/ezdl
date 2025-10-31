@@ -66,12 +66,96 @@ class LlamaMLP(nn.Module):
         
         
 class LlamaRotaryEmbedding(nn.Module):
+    """
+    """
     
-    def __init__(self, config: LlamaConfig):
+    inv_freq: torch.Tensor
+    
+    def __init__(self, config: LlamaConfig, device: torch.device | None = None):
         super().__init__()
+        self.max_seq_len_cached = config.max_position_embeddings
+        self.original_max_seq_len = config.max_position_embeddings
+        self.config = config
         
+        inv_freq, self.attention_scaling = self._compute_default_rope_parameters(device)
+        self.register_buffer("inv_freq", inv_freq, persistent=False)
+        self.original_inv_freq = inv_freq
+        
+    def _compute_default_rope_parameters(
+        self,
+        device: torch.device | None = None,
+    ) -> tuple[torch.Tensor, float]:
+        """
+        Computes the inverse frequencies according to the original RoPE implementation.
+        
+        Inverse frequencies denotes the base angle theta_i for 2d-vector group i.
+        """
+        base_theta = self.config.rope_theta
+        head_dim = self.config.hidden_size // self.config.num_attention_heads
+        
+        attn_factor = 1.0 # not used in default implementation of RoPE
+        
+        # calculate inv_freq (equivalent to theta_i for 2d-vector group i)
+        # inv_freq shape: (head_dim // 2,)
+        inv_freq = 1.0 / (
+            base_theta ** (torch.arange(0, head_dim, 2, dtype=torch.int64).to(device=device, dtype=torch.float32) / head_dim)
+        )
+        return inv_freq, attn_factor
+        
+    @torch.no_grad()
     def forward(self, x, position_ids):
-        pass
+        # Reshape inv_freq to (1, head_dim // 2, 1), position_ids to (1, 1, seq_len)
+        inv_freq_expanded = self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1).to(x.device)
+        position_ids_expanded = position_ids[:, None, :].float()
+        
+        device_type = x.device.type if isinstance(x.device.type, str) and x.device.type != 'mps' else 'cpu'
+        with torch.autocast(device_type=device_type, enabled=False): # Force float32
+            # freqs first has shape (1, head_dim // 2, seq_len) and then (1, seq_len, head_dim // 2)
+            freqs = (inv_freq_expanded.float() @ position_ids_expanded.float()).transpose(1, 2)
+            # expand freqs to (1, seq_len, head_dim) and then calculate cos and sin.
+            embd = torch.cat([freqs, freqs], dim=-1)
+            cos = embd.cos() * self.attention_scaling
+            sin =embd.sin() * self.attention_scaling
+        
+        # cos and sin have shape (1, seq_len, head_dim), typically cos[0, m, i] = cos(m * theta_{i mod head_dim})
+        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)
+        
+        
+def rotate_half(x):
+    """
+    Rotates half the hidden dims of the input.
+    """
+    hidden_size = x.shape[-1]
+    x1 = x[..., : hidden_size // 2]
+    x2 = x[..., hidden_size // 2 :]
+    return torch.cat((-x2, x1), dim=-1)
+        
+
+def apply_rotary_pos_emb(q, k, cos, sin, unsqueeze_dim=1):
+    """
+    Applies Rotary Position Embedding to the query and key tensors.
+    
+    Args:
+        q (`torch.Tensor`): The query tensor. Typical shape is (batch_size, num_heads, seq_len, head_dim)
+        k (`torch.Tensor`): The key tensor. Typical shape is (batch_size, num_heads, seq_len, head_dim)
+        cos (`torch.Tensor`): The cosine part of the rotary embedding. Typical shape is (1 or bz, seq_len, head_dim)
+        sin (`torch.Tensor`): The sine part of the rotary embedding. Typical shape is (1 or bz, seq_len, head_dim)
+        unsqueeze_dim (`int`, *optional*, defaults to 1):
+            The 'unsqueeze_dim' argument specifies the dimension along which to unsqueeze cos[position_ids] and
+            sin[position_ids] so that they can be properly broadcasted to the dimensions of q and k. For example, note
+            that cos[position_ids] and sin[position_ids] have the shape [batch_size, seq_len, head_dim]. Then, if q and
+            k have the shape [batch_size, heads, seq_len, head_dim], then setting unsqueeze_dim=1 makes
+            cos[position_ids] and sin[position_ids] broadcastable to the shapes of q and k. Similarly, if q and k have
+            the shape [batch_size, seq_len, heads, head_dim], then set unsqueeze_dim=2.
+    Returns:
+        `tuple(torch.Tensor)` comprising of the query and key tensors rotated using the Rotary Position Embedding.
+    """
+    # unsqueeze the num_heads dimension
+    cos = cos.unsqueeze(unsqueeze_dim) 
+    sin = sin.unsqueeze(unsqueeze_dim)
+    q_embd = (q * cos) + (rotate_half(q) * sin)
+    k_embd = (k * cos) + (rotate_half(k) * sin)
+    return q_embd, k_embd
 
 
 def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
@@ -123,9 +207,7 @@ class LlamaGroupedQueryAttention(nn.Module):
         super().__init__()
         self.config = config
         self.layer_idx = layer_idx
-        assert config.hidden_size % config.num_attention_heads == 0, f"Hidden size {config.hidden_size} must be divisible by number of attention heads {config.num_attention_heads}"
         self.head_dim = config.hidden_size // config.num_attention_heads
-        assert config.num_attention_heads % config.num_key_value_heads == 0, f"Number of attention heads {config.num_attention_heads} must be divisible by number of key-value heads {config.num_key_value_heads}"
         self.num_key_value_groups = config.num_attention_heads // config.num_key_value_heads
         self.scaling = self.head_dim ** (-0.5)
         self.attention_dropout = config.attention_dropout
@@ -161,13 +243,32 @@ class LlamaGroupedQueryAttention(nn.Module):
         key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         
+        assert position_embeddings is not None, "Position embeddings must be provided"
         cos, sin = position_embeddings
         query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
         
         if past_key_values is not None:
             # sin and cos are specific to RoPE models; cache_position needed for the static cache
             cache_kwargs = {'sin': sin, 'cos': cos, 'cache_position': cache_position}
-            key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, cache_kwargs)
+            key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, **cache_kwargs)
+        
+        attention_forward = eager_attention_forward
+        
+        attn_output, attn_weights = attention_forward(
+            self,
+            query_states,
+            key_states,
+            value_states,
+            attention_mask,
+            dropout=0.0 if not self.training else self.attention_dropout,
+            scaling=self.scaling,
+            **kwargs
+        )
+        
+        attn_output = attn_output.reshape(hidden_states.shape).contiguous()
+        attn_output = self.o_proj(attn_output)
+        
+        return attn_output, attn_weights
     
     
 class LlamaDecoderLayer(nn.Module):
@@ -244,18 +345,16 @@ class LlamaModel(LlamaPreTrainedModel):
         
         if use_cache and past_key_values is None:
             past_key_values = DynamicCache(config=self.config)
-        
-        if cache_position is None:
-            past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
-            # `cache_position` represents the absolute position index of the current input token in the entire sequence
-            cache_position: torch.Tensor = torch.arange(
-                past_seen_tokens, past_seen_tokens + inputs_seq_len, device=inputs_embeds.device
-            )
+    
+        past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
+        cache_position: torch.Tensor = torch.arange(
+            past_seen_tokens, past_seen_tokens + inputs_seq_len, device=inputs_embeds.device
+        )
             
         if position_ids is None:
             # `position_ids` is used to generate rotary position embeddings, representing the position index of each 
             # token in the current batch
-            position_ids = cache_position.unsqueeze(0) # Add batch dimension
+            position_ids = cache_position.unsqueeze(0) # Add batch dimension, shape: (1, inputs_seq_len)
             
         causal_mask = create_causal_mask()
         

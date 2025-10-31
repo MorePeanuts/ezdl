@@ -74,7 +74,7 @@ class LlamaConfig(PreTrainedConfig):
         max_position_embeddings: int = 4096,
         rms_norm_eps: float = 1e-06,
         use_cache: bool = True,
-        rope_params: dict = {},
+        rope_theta: float = 10000.0,
         attention_bias: bool = False,
         attention_dropout: float = 0.0,
         mlp_bias: bool = False,
@@ -93,10 +93,13 @@ class LlamaConfig(PreTrainedConfig):
         self.max_position_embeddings = max_position_embeddings
         self.rms_norm_eps = rms_norm_eps
         self.use_cache = use_cache
-        self.rope_params = rope_params
+        self.rope_theta = rope_theta
         self.attention_bias = attention_bias
         self.attention_dropout = attention_dropout
         self.mlp_bias = mlp_bias
         self.pad_token_id = pad_token_id
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
+        
+        assert self.hidden_size % self.num_attention_heads == 0, f"Hidden size {self.hidden_size} must be divisible by number of attention heads {self.num_attention_heads}"
+        assert self.num_attention_heads % self.num_key_value_heads == 0, f"Number of attention heads {self.num_attention_heads} must be divisible by number of key-value heads {self.num_key_value_heads}"
