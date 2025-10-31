@@ -8,6 +8,10 @@ def get_activation_function(name) -> nn.Module:
             return GELU()
         case 'gelu':
             return nn.GELU()
+        case 'silu':
+            return nn.SiLU()
+        case 'silu_scratch':
+            return SiLU()
         case 'relu':
             return nn.ReLU()
         case 'sigmoid':
@@ -46,3 +50,12 @@ class GELU(nn.Module):
             torch.sqrt(torch.tensor(2.0 / torch.pi)) *
             (x + 0.044715 * torch.pow(x, 3))
         ))
+        
+        
+class SiLU(nn.Module):
+    
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, x):
+        return x * torch.sigmoid(x)
