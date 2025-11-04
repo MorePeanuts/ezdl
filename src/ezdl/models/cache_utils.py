@@ -91,17 +91,23 @@ class DynamicLayer(CacheLayerMixin):
         return self.keys.shape[-2] # type: ignore
         
 
-class DynamicSlidingWindowLayer(CacheLayerMixin):
+class DynamicSlidingWindowLayer(DynamicLayer):
     """
+    A cache layer that grows dynamically as more tokens are generated, up until the sliding window size.
+    It stores the key and value states as tensors of shape `[batch_size, num_heads, min(seq_len, sliding_window), head_dim]`.
     """
     
     is_sliding = True
     
     def __init__(self, sliding_window: int):
-        pass
+        super().__init__()
+        self.sliding_window = sliding_window
+        self.cumulative_length = 0
+        self._sliding_window_tensor = torch.tensor(self.sliding_window, dtype=torch.long)
         
     def lazy_initialization(self, key_states: torch.Tensor):
-        pass
+        super().lazy_initialization(key_states)
+        self._sliding_window_tensor = self._sliding_window_tensor.to(self.device)
         
     def update(
         self, 
@@ -109,10 +115,34 @@ class DynamicSlidingWindowLayer(CacheLayerMixin):
         value_states: torch.Tensor, 
         cache_kwargs: dict[str, Any] | None = None
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        return key_states, value_states
+        """
+        Update the key and value caches in-place, and return the necessary keys and value states.
+
+        Args:
+            key_states (`torch.Tensor`): The new key states to cache.
+            value_states (`torch.Tensor`): The new value states to cache.
+            cache_kwargs (`dict[str, Any]`, *optional*): Additional arguments for the cache.
+
+        Returns:
+            tuple[`torch.Tensor`, `torch.Tensor`]: The key and value states.
+        """
+        if not self.is_initialized:
+            self.lazy_initialization(key_states)
+            
+        self.cumulative_length += key_states.shape[-2]
+        
+        assert isinstance(self.keys, torch.Tensor) and isinstance(self.values, torch.Tensor)
+        full_key_states = torch.cat([self.keys, key_states], dim=-2)
+        full_value_states = torch.cat([self.values, value_states], dim=-2)
+        # Only cache the last `self.sliding_window - 1` tokens
+        self.keys = full_key_states[:, :, -self.sliding_window + 1 :, :]
+        self.values = full_value_states[:, :, -self.sliding_window + 1 :, :]
+        
+        return full_key_states, full_value_states
         
     def get_seq_length(self) -> int:
-        return 0
+        """Returns the sequence length of the cumulative key-value states."""
+        return self.cumulative_length
 
 
 class Cache:
@@ -147,9 +177,6 @@ class Cache:
             )
         self.layers = layers if layers else []
         self.layer_class_to_replicate = layer_class_to_replicate
-    
-    def get_seq_length(self, layer_idx: int = 0) -> int:
-        return 0
         
     def update(
         self, 

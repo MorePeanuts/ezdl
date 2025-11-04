@@ -297,12 +297,13 @@ class LlamaDecoderLayer(nn.Module):
         # Self attention layer
         hidden_states, _ = self.attn(
             hidden_states=hidden_states,
-            attention_mask=attention_mask,
-            position_ids=position_ids,
-            past_key_values=past_key_values,
-            use_cache=use_cache,
-            cache_position=cache_position,
             position_embeddings=position_embeddings,
+            attention_mask=attention_mask,
+            past_key_values=past_key_values,
+            cache_position=cache_position,
+            # kwargs in attention layer below:
+            position_ids=position_ids,
+            use_cache=use_cache,
             **kwargs
         )
         hidden_states = residual + hidden_states
@@ -337,24 +338,26 @@ class LlamaModel(LlamaPreTrainedModel):
         position_ids: torch.LongTensor | None = None,
         past_key_values: Cache | None = None,
         use_cache: bool | None = None,
-        cache_position: torch.LongTensor | None = None,
+        cache_position: torch.LongTensor | None = None, # type: ignore
         **kwargs,
     ) -> BaseModelOutputWithPast:
         inputs_embeds: torch.Tensor = self.tok_embd(input_ids)
         inputs_seq_len = inputs_embeds.shape[1]
         
         if use_cache and past_key_values is None:
-            past_key_values = DynamicCache(config=self.config)
+            past_key_values = DynamicCache()
     
-        past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
-        cache_position: torch.Tensor = torch.arange(
-            past_seen_tokens, past_seen_tokens + inputs_seq_len, device=inputs_embeds.device
-        )
+        assert isinstance(past_key_values, Cache)
+        if cache_position is None:
+            past_seen_tokens = past_key_values.get_seq_lenth() if past_key_values else 0
+            cache_position: torch.Tensor = torch.arange(
+                past_seen_tokens, past_seen_tokens + inputs_seq_len, device=inputs_embeds.device
+            )
             
         if position_ids is None:
-            # `position_ids` is used to generate rotary position embeddings, representing the position index of each 
-            # token in the current batch
-            position_ids = cache_position.unsqueeze(0) # Add batch dimension, shape: (1, inputs_seq_len)
+            # `position_ids` is used to generate rotary position embeddings, representing the position index of each token in the current batch
+            # Add batch dimension, shape: (1, inputs_seq_len)
+            position_ids = cache_position.unsqueeze(0) # type: ignore
             
         causal_mask = create_causal_mask()
         
@@ -391,7 +394,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         input_ids: torch.LongTensor,
         position_ids: torch.LongTensor | None = None,
         past_key_values: Cache | None = None,
-        # labels: torch.LongTensor | None = None,
+        labels: torch.LongTensor | None = None,
         use_cache: bool | None = None,
         cache_position: torch.LongTensor | None = None,
         logits_to_keep: int | torch.Tensor = 0,
