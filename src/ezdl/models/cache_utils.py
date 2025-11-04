@@ -1,7 +1,7 @@
 import torch
 from typing import Any
 from abc import ABC, abstractmethod
-from ezdl.models.modeling_utils import PreTrainedConfig
+from ezdl.models.configuration_utils import PreTrainedConfig
 
 
 class CacheLayerMixin(ABC):
@@ -27,6 +27,10 @@ class CacheLayerMixin(ABC):
         
     @abstractmethod
     def get_seq_length(self) -> int:
+        ...
+        
+    @abstractmethod
+    def get_mask_sizes(self, cache_position: torch.Tensor) -> tuple[int, int]:
         ...
     
     def reset(self) -> None:
@@ -90,6 +94,13 @@ class DynamicLayer(CacheLayerMixin):
             return 0
         return self.keys.shape[-2] # type: ignore
         
+    def get_mask_sizes(self, cache_position: torch.Tensor) -> tuple[int, int]:
+        """Return the length and offset of the cache, used to generate the mask"""
+        kv_offset = 0
+        query_length = cache_position.shape[0]
+        kv_length = self.get_seq_length() + query_length
+        return kv_length, kv_offset
+        
 
 class DynamicSlidingWindowLayer(DynamicLayer):
     """
@@ -143,8 +154,21 @@ class DynamicSlidingWindowLayer(DynamicLayer):
     def get_seq_length(self) -> int:
         """Returns the sequence length of the cumulative key-value states."""
         return self.cumulative_length
-
-
+        
+    def get_mask_sizes(self, cache_position: torch.Tensor) -> tuple[int, int]:
+        """Returns the sizes of the attention mask for the current cache position."""
+        query_length = cache_position.shape[0]
+        is_full = self.cumulative_length >= self.sliding_window
+        
+        kv_offset = max(self.cumulative_length - self.sliding_window + 1, 0)
+        if is_full:
+            kv_length = self.sliding_window - 1 + query_length
+        else:
+            kv_length = self.cumulative_length + query_length
+            
+        return kv_length, kv_offset
+        
+        
 class Cache:
     """
     A `Cache` is a list of `CacheLayerMixin` objects, one per model layer. It serves as
@@ -216,6 +240,30 @@ class Cache:
         if layer_idx >= len(self.layers):
             return 0
         return self.layers[layer_idx].get_seq_length()
+        
+    def get_mask_sizes(self, cache_position: torch.Tensor, layer_idx: int) -> tuple[int, int]:
+        """
+        Return a tuple (kv_length, kv_offset) corresponding to the length and offset that will
+        be returned for the given layer at `layer_idx`. The masks are then prepared according 
+        to the given lengths (kv_length, kv_offset) and patterns for each layer.
+        """
+        if layer_idx >= len(self.layers):
+            return cache_position.shape[0], 0
+        return self.layers[layer_idx].get_mask_sizes(cache_position)
+        
+    @property
+    def is_sliding(self) -> list[bool]:
+        """Return whether the layers of the cache are sliding window."""
+        return [getattr(layer, 'is_sliding', False) for layer in self.layers]
+        
+    @property
+    def is_initialized(self) -> bool:
+        """Return whether the cache data is initialized."""
+        return len(self.layers) > 0 and all(layer.is_initialized for layer in self.layers)
+        
+    def __len__(self):
+        """Return the number of layers in the model."""
+        return len(self.layers)
     
     
 class DynamicCache(Cache):
@@ -249,11 +297,11 @@ class DynamicCache(Cache):
             if layer_types is None:
                 layer_types = [
                     "sliding_attention" if sliding_window is not None else "full_attention"
-                    for _ in range(decoder_config.num_hidden_layers)
+                    for _ in range(decoder_config.num_hidden_layers) # type: ignore
                 ]
             # Some models have shared layers thus no cache is needed for them (e.g. Gemma3n)
             if hasattr(decoder_config, "num_kv_shared_layers"):
-                layer_types = layer_types[: -decoder_config.num_kv_shared_layers]
+                layer_types = layer_types[: -decoder_config.num_kv_shared_layers] # type: ignore
 
             for layer_type in layer_types:
                 # From a cache point of view, both sliding and chunked are the same in how they should behave and how many

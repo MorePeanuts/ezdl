@@ -1,7 +1,7 @@
 """
 """
 
-from ..modeling_utils import PreTrainedConfig
+from ..configuration_utils import PreTrainedConfig
 
 
 class LlamaConfig(PreTrainedConfig):
@@ -62,7 +62,7 @@ class LlamaConfig(PreTrainedConfig):
 
     model_type = 'llama'
 
-    def __init(
+    def __init__(
         self,
         vocab_size: int = 32000,
         hidden_size: int = 4096,
@@ -80,7 +80,8 @@ class LlamaConfig(PreTrainedConfig):
         mlp_bias: bool = False,
         pad_token_id: int = 0,
         bos_token_id: int = 1,
-        eos_token_id: int = 2
+        eos_token_id: int = 2,
+        **kwargs,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -100,6 +101,7 @@ class LlamaConfig(PreTrainedConfig):
         self.pad_token_id = pad_token_id
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
+        self._attn_implementation = kwargs.pop('attn_implementation', 'eager')
         
         assert self.hidden_size % self.num_attention_heads == 0, f"Hidden size {self.hidden_size} must be divisible by number of attention heads {self.num_attention_heads}"
         assert self.num_attention_heads % self.num_key_value_heads == 0, f"Number of attention heads {self.num_attention_heads} must be divisible by number of key-value heads {self.num_key_value_heads}"

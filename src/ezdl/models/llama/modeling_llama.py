@@ -9,6 +9,7 @@ from ..modeling_outputs import CausalLMOutputWithPast, BaseModelOutputWithPast
 from ..activation_func import get_activation_function
 from ..generate_utils import GenerationMixin
 from ..cache_utils import Cache, DynamicCache
+from ..masking_utils import create_causal_mask
 
 
 class LlamaPreTrainedModel(PreTrainedModel):
@@ -359,7 +360,14 @@ class LlamaModel(LlamaPreTrainedModel):
             # Add batch dimension, shape: (1, inputs_seq_len)
             position_ids = cache_position.unsqueeze(0) # type: ignore
             
-        causal_mask = create_causal_mask()
+        causal_mask = create_causal_mask(
+            config=self.config,
+            input_embeds=inputs_embeds,
+            attention_mask=None,
+            cache_position=cache_position,
+            past_key_values=past_key_values,
+            position_ids=position_ids
+        )
         
         # forward propagation
         hidden_states = inputs_embeds

@@ -1,4 +1,4 @@
-from ..modeling_utils import PreTrainedConfig
+from ..configuration_utils import PreTrainedConfig
 
 
 class AlexNetConfig(PreTrainedConfig):

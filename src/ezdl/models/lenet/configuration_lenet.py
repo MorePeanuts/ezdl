@@ -1,5 +1,5 @@
 from typing import Literal
-from ..modeling_utils import PreTrainedConfig
+from ..configuration_utils import PreTrainedConfig
 
 
 class LeNetConfig(PreTrainedConfig):
