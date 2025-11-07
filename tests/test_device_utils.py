@@ -1,8 +1,8 @@
 import pytest
 import torch
 import tiktoken
-from ezdl.device_utils import get_single_device
-from ezdl.models.gpt2 import GPT2Config, GPT2ModelForCausalLM
+from mini_transformer.device_utils import get_single_device
+from mini_transformer.models.gpt2 import GPT2Config, GPT2ModelForCausalLM
 
 
 @pytest.fixture

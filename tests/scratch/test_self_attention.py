@@ -1,6 +1,6 @@
 import pytest
 import torch
-from ezdl.scratch.self_attention import (
+from mini_transformer.scratch.self_attention import (
     SelfAttention,
     CausalAttention,
     MultiHeadAttentionWrapper,

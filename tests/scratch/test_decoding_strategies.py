@@ -2,7 +2,7 @@ import pytest
 import torch
 import tiktoken
 from pathlib import Path
-from ezdl.scratch.decoding_strategies import (
+from mini_transformer.scratch.decoding_strategies import (
     greedy_sampling,
     top_k_sampling,
     top_p_sampling,
@@ -10,7 +10,7 @@ from ezdl.scratch.decoding_strategies import (
     greedy_search,
     beam_search_simple
 )
-from ezdl.models.gpt2 import (
+from mini_transformer.models.gpt2 import (
     GPT2ModelForCausalLM,
 )
 

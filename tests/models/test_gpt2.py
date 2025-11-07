@@ -2,7 +2,7 @@ import torch
 import pytest
 import tiktoken
 from torch.utils.data import DataLoader
-from ezdl.models.gpt2 import (
+from mini_transformer.models.gpt2 import (
     GPT2Config,
     GPT2LayerNorm,
     GPT2TransformerBlock,
@@ -16,8 +16,8 @@ from ezdl.models.gpt2 import (
     calc_loss_batch, 
     calc_loss_dataloader
 )
-from ezdl.data.sms_spam_collection import SMSSpamCollection
-from ezdl.data.the_verdict import TheVerdictDataset
+from mini_transformer.data.sms_spam_collection import SMSSpamCollection
+from mini_transformer.data.the_verdict import TheVerdictDataset
 
 
 @pytest.fixture

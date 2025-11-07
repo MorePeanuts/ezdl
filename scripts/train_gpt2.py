@@ -7,22 +7,22 @@ from torch.utils.data import (
     random_split,
 )
 from torch.optim import AdamW
-from ezdl.trainer_seq2seq import (
+from mini_transformer.trainer_seq2seq import (
     train_gpt2_simple,
     train_gpt2_classifier_simple
 )
-from ezdl.models.gpt2 import (
+from mini_transformer.models.gpt2 import (
     GPT2Config,
     GPT2ModelForCausalLM,
     GPT2ModelForClassification,
     calc_accuracy_dataloader
 )
-from ezdl.device_utils import get_single_device
-from ezdl.data.the_verdict import TheVerdictDataset
-from ezdl.data.sms_spam_collection import SMSSpamCollection
-from ezdl.data.demo_instruction import DemoInstructionDataset
-from ezdl.tokenizer.bpe import BPETokenizerTiktoken
-from ezdl.plot_utils import plot_loss, plot_loss_and_acc
+from mini_transformer.device_utils import get_single_device
+from mini_transformer.data.the_verdict import TheVerdictDataset
+from mini_transformer.data.sms_spam_collection import SMSSpamCollection
+from mini_transformer.data.demo_instruction import DemoInstructionDataset
+from mini_transformer.tokenizer.bpe import BPETokenizerTiktoken
+from mini_transformer.plot_utils import plot_loss, plot_loss_and_acc
 
 
 def train_gpt2_for_generation():

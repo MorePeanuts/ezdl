@@ -4,20 +4,20 @@ import torch.nn as nn
 from typing import Literal, Annotated
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
-from ezdl.data.fashion_mnist import FashionMNIST
-from ezdl.scratch.linear_model import (
+from mini_transformer.data.fashion_mnist import FashionMNIST
+from mini_transformer.scratch.linear_model import (
     MultiLinearRegression,
     MLPForClassification
 )
-from ezdl.models.lenet import LeNetModelForClassification
-from ezdl.models.alexnet import AlexNetModelForClassification, AlexNetConfig
-from ezdl.models.vgg import VGGModelForClassification, VGGConfig
-from ezdl.models.nin import NiNModelForClassification, NiNConfig
-from ezdl.models.googlenet import GoogLeNetModelForClassification, GoogLeNetConfig
-from ezdl.models.loss_utils import CrossEntropyLoss
-from ezdl.trainer import train_classification_model_simple
-from ezdl.device_utils import get_single_device
-from ezdl.plot_utils import plot_loss_and_acc
+from mini_transformer.models.lenet import LeNetModelForClassification
+from mini_transformer.models.alexnet import AlexNetModelForClassification, AlexNetConfig
+from mini_transformer.models.vgg import VGGModelForClassification, VGGConfig
+from mini_transformer.models.nin import NiNModelForClassification, NiNConfig
+from mini_transformer.models.googlenet import GoogLeNetModelForClassification, GoogLeNetConfig
+from mini_transformer.models.loss_utils import CrossEntropyLoss
+from mini_transformer.trainer import train_classification_model_simple
+from mini_transformer.device_utils import get_single_device
+from mini_transformer.plot_utils import plot_loss_and_acc
 
 
 def train_classifier(

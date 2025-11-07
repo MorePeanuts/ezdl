@@ -4,22 +4,22 @@ import torch.nn as nn
 from typing import Literal, Annotated
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
-from ezdl.trainer import (
+from mini_transformer.trainer import (
     train_regression_model_simple,
     train_classification_model_simple
 )
-from ezdl.data.data_utils import SyntheticRegressionData
-from ezdl.data.fashion_mnist import FashionMNIST
-from ezdl.scratch.linear_model import (
+from mini_transformer.data.data_utils import SyntheticRegressionData
+from mini_transformer.data.fashion_mnist import FashionMNIST
+from mini_transformer.scratch.linear_model import (
     LinearRegression,
     MultiLinearRegression,
     NaiveSoftmaxRegression,
     MLPForClassification
 )
-from ezdl.optimizer.gredient_descent import NaiveSGD
-from ezdl.models.loss_utils import MSELoss, CrossEntropyLoss
-from ezdl.device_utils import get_single_device
-from ezdl.plot_utils import plot_loss, plot_loss_and_acc
+from mini_transformer.optimizer.gredient_descent import NaiveSGD
+from mini_transformer.models.loss_utils import MSELoss, CrossEntropyLoss
+from mini_transformer.device_utils import get_single_device
+from mini_transformer.plot_utils import plot_loss, plot_loss_and_acc
 
 
 def train_linear_regression_on_synthetic_data(naive_optim=False):

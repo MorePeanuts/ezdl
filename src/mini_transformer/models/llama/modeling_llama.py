@@ -336,6 +336,7 @@ class LlamaModel(LlamaPreTrainedModel):
     def forward(
         self,
         input_ids: torch.LongTensor,
+        attention_mask: torch.Tensor | None = None,
         position_ids: torch.LongTensor | None = None,
         past_key_values: Cache | None = None,
         use_cache: bool | None = None,
@@ -348,7 +349,6 @@ class LlamaModel(LlamaPreTrainedModel):
         if use_cache and past_key_values is None:
             past_key_values = DynamicCache()
     
-        assert isinstance(past_key_values, Cache)
         if cache_position is None:
             past_seen_tokens = past_key_values.get_seq_lenth() if past_key_values else 0
             cache_position: torch.Tensor = torch.arange(
@@ -363,7 +363,7 @@ class LlamaModel(LlamaPreTrainedModel):
         causal_mask = create_causal_mask(
             config=self.config,
             input_embeds=inputs_embeds,
-            attention_mask=None,
+            attention_mask=attention_mask,
             cache_position=cache_position,
             past_key_values=past_key_values,
             position_ids=position_ids
@@ -376,10 +376,11 @@ class LlamaModel(LlamaPreTrainedModel):
             hidden_states = decoder_layer(
                 hidden_states,
                 attention_mask=causal_mask,
-                position_embeddings=position_embeddings,
                 position_ids=position_ids,
                 past_key_values=past_key_values,
+                use_cache=use_cache,
                 cache_position=cache_position,
+                position_embeddings=position_embeddings,
                 **kwargs
             )
         hidden_states = self.norm(hidden_states)
@@ -400,6 +401,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
     def forward(
         self,
         input_ids: torch.LongTensor,
+        attention_mask: torch.Tensor | None = None,
         position_ids: torch.LongTensor | None = None,
         past_key_values: Cache | None = None,
         labels: torch.LongTensor | None = None,
@@ -410,6 +412,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
     ) -> CausalLMOutputWithPast:
         base_output: BaseModelOutputWithPast = self.model(
             input_ids=input_ids,
+            attention_mask=attention_mask,
             position_ids=position_ids,
             past_key_values=past_key_values,
             use_cache=use_cache,

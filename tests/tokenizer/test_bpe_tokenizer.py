@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
-from ezdl.tokenizer.bpe import BPETokenizerSimple, BPETokenizerTiktoken
-from ezdl.data.the_verdict import TheVerdictDataset
+from mini_transformer.tokenizer.bpe import BPETokenizerSimple, BPETokenizerTiktoken
+from mini_transformer.data.the_verdict import TheVerdictDataset
 
 
 @pytest.mark.parametrize('input_text, token_ids', [

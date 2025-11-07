@@ -12,7 +12,7 @@ import torch
 import tiktoken
 import torch.nn as nn
 from pathlib import Path
-from ezdl.models.gpt2 import (
+from mini_transformer.models.gpt2 import (
     GPT2Config, 
     GPT2ModelForCausalLM, 
     generate_text_simple,

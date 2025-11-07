@@ -1,7 +1,7 @@
 import pytest
 import tiktoken
 import torch
-from ezdl.data.sms_spam_collection import SMSSpamCollection
+from mini_transformer.data.sms_spam_collection import SMSSpamCollection
 from torch.utils.data import DataLoader
 
 

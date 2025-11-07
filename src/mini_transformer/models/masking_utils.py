@@ -1,7 +1,7 @@
 import torch
 from typing import Callable
-from ezdl.models.cache_utils import Cache
-from ezdl.models.configuration_utils import PreTrainedConfig
+from mini_transformer.models.cache_utils import Cache
+from mini_transformer.models.configuration_utils import PreTrainedConfig
 
 
 def causal_mask_function(batch_idx: int, head_idx: int, q_idx: int, kv_idx: int) -> bool:

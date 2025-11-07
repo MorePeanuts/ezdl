@@ -1,7 +1,7 @@
 import torch
 from typing import Any
 from abc import ABC, abstractmethod
-from ezdl.models.configuration_utils import PreTrainedConfig
+from mini_transformer.models.configuration_utils import PreTrainedConfig
 
 
 class CacheLayerMixin(ABC):

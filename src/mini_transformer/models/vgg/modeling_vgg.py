@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from ezdl.models.modeling_utils import PreTrainedModel
-from ezdl.models.vgg.configuration_vgg import VGGConfig
+from mini_transformer.models.modeling_utils import PreTrainedModel
+from mini_transformer.models.vgg.configuration_vgg import VGGConfig
 
 
 class VGGPreTrainedModel(PreTrainedModel):

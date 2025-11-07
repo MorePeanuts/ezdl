@@ -2,7 +2,7 @@ import pytest
 import tiktoken
 import torch
 from torch.utils.data import DataLoader
-from ezdl.data.demo_instruction import DemoInstructionDataset
+from mini_transformer.data.demo_instruction import DemoInstructionDataset
 
 
 @pytest.fixture

@@ -1,5 +1,5 @@
 import tiktoken
-from ezdl.data.the_verdict import TheVerdictDataset
+from mini_transformer.data.the_verdict import TheVerdictDataset
 from torch.utils.data import DataLoader
 
 
