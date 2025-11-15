@@ -76,10 +76,19 @@ class SyntheticRegressionData(Dataset):
 
 
 class SyntheticSineData(Dataset):
-    def __init__(self, total_steps=1000, train_steps=600, window_size=4):
+    def __init__(self, total_steps=1000, window_size=4):
         self.time = torch.arange(1, total_steps + 1, dtype=torch.float32)
         self.x = torch.sin(0.01 * self.time) + torch.randn(total_steps) * 0.2
+        self.window_size = window_size
+        self.total_steps = total_steps
+        self.features = torch.stack(
+            [self.x[i : self.total_steps - self.window_size + i] for i in range(self.window_size)],
+            1,
+        )
+        self.labels = self.x[self.window_size :].reshape((-1, 1))
 
-    def __len__(self): ...
+    def __len__(self):
+        return self.total_steps - self.window_size
 
-    def __getitem__(self, idx): ...
+    def __getitem__(self, idx):
+        return self.features[idx], self.labels[idx]
