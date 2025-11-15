@@ -6,9 +6,9 @@ from pathlib import Path
 
 
 class PreTrainedConfig:
-    model_type: str = ""
+    model_type: str = ''
     attribute_map: dict[str, str] = {}
-    
+
     def __init__(self, **kwargs):
         pass
 
@@ -26,8 +26,8 @@ class PreTrainedConfig:
         Returns:
             PreTrainedConfig: The loaded configuration.
         """
-        json_file = Path(model_directory) / "config.json"
-        assert json_file.exists(), f"{json_file} not exists."
+        json_file = Path(model_directory) / 'config.json'
+        assert json_file.exists(), f'{json_file} not exists.'
         return cls.from_json_file(json_file)
 
     @classmethod
@@ -42,7 +42,7 @@ class PreTrainedConfig:
             PreTrainedConfig: The loaded configuration.
         """
         config = cls()
-        with open(json_file, "r") as f:
+        with open(json_file, 'r') as f:
             config_dict = json.load(f)
         config.update(config_dict)
         return config
@@ -62,7 +62,7 @@ class PreTrainedConfig:
         config_dict = {}
         for k, v in self.__dict__.items():
             # Skip private attributes and methods
-            if k.startswith("_"):
+            if k.startswith('_'):
                 continue
 
             # Skip callable attributes (methods)
@@ -72,14 +72,14 @@ class PreTrainedConfig:
             config_dict[k] = v
 
         # Ensure key class-level attributes are included
-        if "model_type" not in config_dict:
-            config_dict["model_type"] = self.model_type
-        if "attribute_map" not in config_dict:
-            config_dict["attribute_map"] = self.attribute_map
+        if 'model_type' not in config_dict:
+            config_dict['model_type'] = self.model_type
+        if 'attribute_map' not in config_dict:
+            config_dict['attribute_map'] = self.attribute_map
 
         # Save the configuration to config.json
-        config_file = save_directory / "config.json"
-        with open(config_file, "w") as f:
+        config_file = save_directory / 'config.json'
+        with open(config_file, 'w') as f:
             json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
     def update(self, config_dict: dict):
@@ -91,10 +91,10 @@ class PreTrainedConfig:
         """
         for k, v in config_dict.items():
             if not hasattr(self, k):
-                raise KeyError(f"{self.__class__.__name__} has no {k} attribute")
+                raise KeyError(f'{self.__class__.__name__} has no {k} attribute')
             setattr(self, k, v)
-            
-    def get_text_config(self, decoder=None, encoder=None) -> "PreTrainedConfig":
+
+    def get_text_config(self, decoder=None, encoder=None) -> 'PreTrainedConfig':
         """
         Returns the text config related to the text input (encoder) or text output (decoder) of the model. The
         `decoder` and `encoder` input arguments can be used to specify which end of the model we are interested in,
@@ -115,21 +115,20 @@ class PreTrainedConfig:
         return self
 
     def __repr__(self) -> str:
-        attrs = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+        attrs = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
         # Ensure key class-level attributes are visible even if not set on the instance
-        if "model_type" not in attrs:
-            attrs["model_type"] = self.model_type
-        if "attribute_map" not in attrs:
-            attrs["attribute_map"] = self.attribute_map
-        lines = [f"{self.__class__.__name__}("]
+        if 'model_type' not in attrs:
+            attrs['model_type'] = self.model_type
+        if 'attribute_map' not in attrs:
+            attrs['attribute_map'] = self.attribute_map
+        lines = [f'{self.__class__.__name__}(']
         for key in sorted(attrs):
-            lines.append(f"  {key}={attrs[key]!r},")
-        lines.append(")")
-        return "\n".join(lines)
-        
-        
+            lines.append(f'  {key}={attrs[key]!r},')
+        lines.append(')')
+        return '\n'.join(lines)
+
+
 class GenerationConfig:
-    
     def __init__(
         self,
         # control the length of the output
@@ -141,7 +140,10 @@ class GenerationConfig:
         num_beams: int = 1,
         # control the cache
         use_cache: bool = True,
-        cache_implementation: Literal['dynamic', 'static', 'offloaded', 'offloaded_static', 'quantized'] | None = None,
+        cache_implementation: Literal[
+            'dynamic', 'static', 'offloaded', 'offloaded_static', 'quantized'
+        ]
+        | None = None,
         cache_config: dict | None = None,
         # manipulate the output logits
         temperature: float = 1.0,
@@ -175,10 +177,9 @@ class GenerationConfig:
         self.pad_token_id = pad_token_id
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
-        
-        
+
+
 class TransformerConfigMixin:
-    
     def __init__(
         self,
         *,
@@ -203,16 +204,14 @@ class TransformerConfigMixin:
         eos_token_id: int | None = None,
         sep_token_id: int | None = None,
         decoder_start_token_id: int | None = None,
-        **kwargs
+        **kwargs,
     ):
-        
         self._attn_implementation = kwargs.pop('attn_implementation', 'eager')
-        
-        
+
     @property
     def _attn_implementation(self):
         return self._attn_implementation_internal
-        
+
     @_attn_implementation.setter
     def _attn_implementation(self, value: str):
         self._attn_implementation_internal = value

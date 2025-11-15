@@ -3,7 +3,6 @@ from .configuration_utils import GenerationConfig
 
 
 class GenerationMixin:
-    
     @torch.no_grad()
     def generate(
         self,

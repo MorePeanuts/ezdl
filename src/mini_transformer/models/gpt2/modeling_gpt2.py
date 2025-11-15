@@ -17,10 +17,10 @@ class GPT2PreTrainedModel(PreTrainedModel):
     Base class for GPT-2 models providing shared initialization and utility behavior.
     Acts as a thin wrapper around PreTrainedModel.
     """
-    
+
     config_class = GPT2Config
     base_model_prefix = 'transformer'
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -30,6 +30,7 @@ class GPT2LayerNorm(nn.Module):
     GPT-2 style LayerNorm operating over the last dimension with learnable scale and shift.
     Uses an epsilon from the config for numerical stability.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__()
         self.eps = config.layer_norm_epsilon
@@ -48,6 +49,7 @@ class GPT2FeedForward(nn.Module):
     Position-wise feed-forward network used within GPT-2 blocks:
     Linear -> activation -> Linear mapping hidden features back to embedding size.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__()
         activation_func = get_activation_function(config.activation_func)
@@ -66,15 +68,16 @@ class GPT2TransformerBlock(nn.Module):
     Single GPT-2 transformer block with pre-layer normalization, multi-head self-attention,
     residual connections, dropout on residual paths, and a feed-forward MLP.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__()
         self.attn = MultiHeadAttention(
-            d_in = config.embd_dim,
-            d_out = config.embd_dim,
-            context_length= config.context_length,
+            d_in=config.embd_dim,
+            d_out=config.embd_dim,
+            context_length=config.context_length,
             num_heads=config.n_head,
             dropout=config.attn_pdrop,
-            qkv_bias=config.qkv_bias
+            qkv_bias=config.qkv_bias,
         )
         self.ffn = GPT2FeedForward(config)
         self.norm1 = GPT2LayerNorm(config)
@@ -102,6 +105,7 @@ class GPT2Model(GPT2PreTrainedModel):
     Decoder-only GPT-2 backbone: token and position embeddings, a stack of transformer blocks,
     and a final layer normalization. Produces hidden states for each input position.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__(config)
 
@@ -130,6 +134,7 @@ class GPT2ModelForCausalLM(GPT2PreTrainedModel):
     GPT-2 model for causal language modeling. Wraps the GPT-2 backbone and applies
     a linear head to produce vocabulary logits at each time step.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__(config)
         self.model = GPT2Model(config)
@@ -147,6 +152,7 @@ class GPT2ModelForClassification(GPT2PreTrainedModel):
     GPT-2 model for classification tasks. Wraps the GPT-2 backbone and applies
     a linear head to produce logits for a specified number of labels.
     """
+
     def __init__(self, config: GPT2Config):
         super().__init__(config)
         self.model = GPT2Model(config)

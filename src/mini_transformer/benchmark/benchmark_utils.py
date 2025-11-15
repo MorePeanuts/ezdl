@@ -9,7 +9,8 @@ def timer(func):
         result = func(*args, **kwargs)
         end_time = time.time()
         execution_time = end_time - start_time
-        
-        print(f"function {func.__name__} executed in {execution_time:.6f} seconds")
+
+        print(f'function {func.__name__} executed in {execution_time:.6f} seconds')
         return result
+
     return wrapper

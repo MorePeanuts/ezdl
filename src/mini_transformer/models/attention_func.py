@@ -40,7 +40,7 @@ def eager_attention(
         value = torch.repeat_interleave(value, n_rep, dim=1)
 
     # Compute attention scores
-    attn_weights = (query @ key.transpose(2, 3))
+    attn_weights = query @ key.transpose(2, 3)
 
     # Apply scaling
     if scale is not None:
@@ -48,8 +48,12 @@ def eager_attention(
 
     # Handle causal masking
     if attn_mask is None and is_causal:
-        assert query_seq_len == key_seq_len, "Query and key sequence lengths must be equal for causal attention"
-        attn_mask = torch.triu(torch.ones(query_seq_len, query_seq_len, device=query.device), diagonal=1)
+        assert query_seq_len == key_seq_len, (
+            'Query and key sequence lengths must be equal for causal attention'
+        )
+        attn_mask = torch.triu(
+            torch.ones(query_seq_len, query_seq_len, device=query.device), diagonal=1
+        )
         attn_mask = attn_mask.unsqueeze(0).unsqueeze(0) * (-torch.inf)
 
     # Apply attention mask
@@ -69,6 +73,6 @@ def eager_attention(
     attn_output = attn_output.transpose(1, 2).contiguous()
 
     return attn_output, attn_weights
-    
-    
+
+
 scaled_dot_product_attention = nn.functional.scaled_dot_product_attention

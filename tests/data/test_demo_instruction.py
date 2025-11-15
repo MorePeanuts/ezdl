@@ -13,7 +13,7 @@ def tokenizer():
 def test_demo_instruction_dataset(tokenizer):
     dataset = DemoInstructionDataset(tokenizer)
     assert len(dataset) == 1100
-    
+
     dataloader = DataLoader(
         dataset,
         batch_size=4,
@@ -24,11 +24,6 @@ def test_demo_instruction_dataset(tokenizer):
     inputs, targets = next(iter(dataloader))
     assert len(inputs.shape) == 2 and len(targets.shape) == 2
     assert isinstance(inputs, torch.Tensor)
-    
-    print(tokenizer.decode([
-        item for item in inputs[0].tolist() if item >= 0
-    ]))
-    print(tokenizer.decode([
-        item for item in targets[0].tolist() if item >= 0
-    ]))
-    
+
+    print(tokenizer.decode([item for item in inputs[0].tolist() if item >= 0]))
+    print(tokenizer.decode([item for item in targets[0].tolist() if item >= 0]))

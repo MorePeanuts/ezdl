@@ -2,9 +2,8 @@ from ..configuration_utils import PreTrainedConfig
 
 
 class VGGConfig(PreTrainedConfig):
-    
     model_type = 'vgg'
-    
+
     def __init__(
         self,
         num_classes: int = 1000,
@@ -13,18 +12,13 @@ class VGGConfig(PreTrainedConfig):
         dropout_fc1: float = 0.5,
         fc2_out_features: int = 4096,
         dropout_fc2: float = 0.5,
-        vgg_pairs: list[tuple[int, int]] = [
-            (1, 64),
-            (1, 128),
-            (2, 512),
-            (2, 512)
-        ],
+        vgg_pairs: list[tuple[int, int]] = [(1, 64), (1, 128), (2, 512), (2, 512)],
         vgg_kernel_size: int = 3,
         vgg_padding: int = 1,
         vgg_stride: int = 1,
         pool_kernel_size: int = 2,
         pool_padding: int = 0,
-        pool_stride: int = 2
+        pool_stride: int = 2,
     ):
         super().__init__()
         self.num_classes = num_classes

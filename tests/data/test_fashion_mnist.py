@@ -9,8 +9,8 @@ def test_fashion_mnist():
     assert len(eval_set) == 10_000
     assert train_set[0][0].shape == (1, 28, 28)
     assert train_set[0][1] in range(10)
-    
-    
+
+
 def test_fashion_mnist_batch():
     dataset = FashionMNIST()
     dataloader = DataLoader(dataset, batch_size=8)

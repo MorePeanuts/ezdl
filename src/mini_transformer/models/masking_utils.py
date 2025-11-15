@@ -7,18 +7,15 @@ from mini_transformer.models.configuration_utils import PreTrainedConfig
 def causal_mask_function(batch_idx: int, head_idx: int, q_idx: int, kv_idx: int) -> bool:
     """This creates a basic lower-diagonal causal mask."""
     return kv_idx <= q_idx
-    
-    
+
+
 def bidirectional_mask_function(batch_idx: int, head_idx: int, q_idx: int, kv_idx: int) -> bool:
     """This creates a basic bidirectional mask."""
     ...
-    
+
 
 def prepare_padding_mask(
-    attention_mask: torch.Tensor | None,
-    kv_length: int, 
-    kv_offset: int, 
-    _slice: bool = True
+    attention_mask: torch.Tensor | None, kv_length: int, kv_offset: int, _slice: bool = True
 ) -> torch.Tensor | None:
     """
     From the 2D attention mask, prepare the correct padding mask to use by potentially padding it, and slicing
@@ -184,7 +181,9 @@ def sdpa_mask(
         if padding_mask is not None:
             return padding_mask[:, None, None, :].expand(-1, -1, q_length, -1)
         else:
-            return torch.ones(batch_size, 1, q_length, kv_length, dtype=torch.bool, device=cache_position.device)
+            return torch.ones(
+                batch_size, 1, q_length, kv_length, dtype=torch.bool, device=cache_position.device
+            )
 
     # Similar to `kv_arange = torch.arange(start=kv_offset, end=kv_offset + kv_length, device=cache_position.device)`
     # but without data-dependent slicing (i.e. torch.compile friendly)
@@ -195,7 +194,9 @@ def sdpa_mask(
     # as vmap cannot handle slicing a tensor from scalar tensor (it internally calls `.item()` which vmap does not allow
     # However, in more recent version of Pytorch, a trick was introduced to handle it - which is the reason we have
     # `sdpa_mask_recent_torch`, as it allows more general `mask_function`
-    causal_mask = _vmap_for_bhqkv(mask_function, bh_indices=False)(None, None, cache_position, kv_arange)
+    causal_mask = _vmap_for_bhqkv(mask_function, bh_indices=False)(
+        None, None, cache_position, kv_arange
+    )
     causal_mask = causal_mask[None, None, :, :].expand(batch_size, -1, -1, -1)
     if padding_mask is not None:
         causal_mask = causal_mask * padding_mask[:, None, None, :]
@@ -236,8 +237,8 @@ def eager_mask(
             The dtype to use for the mask. By default, `torch.float32`.
     """
     # The masks for eager attention are simply boolean mask from sdpa, casted to 0 and -inf
-    _ = kwargs.pop("allow_is_causal_skip", None)
-    _ = kwargs.pop("allow_is_bidirectional_skip", None)
+    _ = kwargs.pop('allow_is_causal_skip', None)
+    _ = kwargs.pop('allow_is_bidirectional_skip', None)
     mask = sdpa_mask(
         batch_size=batch_size,
         cache_position=cache_position,
@@ -252,17 +253,15 @@ def eager_mask(
     )
     min_dtype = torch.finfo(dtype).min
     # we need 0s where the tokens should be taken into account, and -inf otherwise (mask is already of boolean type)
-    mask = torch.where(mask, torch.tensor(0.0, device=mask.device, dtype=dtype), min_dtype) # type: ignore
+    mask = torch.where(mask, torch.tensor(0.0, device=mask.device, dtype=dtype), min_dtype)  # type: ignore
     return mask
-    
-    
-def flash_attention_mask():
-    ...
-    
-    
-def flex_attention_mask():
-    ...
-    
+
+
+def flash_attention_mask(): ...
+
+
+def flex_attention_mask(): ...
+
 
 ALL_MASK_ATTENTION_FUNCTIONS = {
     'sdpa': sdpa_mask,
@@ -272,7 +271,7 @@ ALL_MASK_ATTENTION_FUNCTIONS = {
     'flex_attention': flex_attention_mask,
 }
 
-    
+
 def find_packed_sequence_indices(position_ids: torch.Tensor) -> torch.Tensor:
     """
     Find the indices of the sequence to which each new query token in the sequence belongs when using packed
@@ -298,8 +297,8 @@ def find_packed_sequence_indices(position_ids: torch.Tensor) -> torch.Tensor:
     # Here it would be nice to return None if we did not detect packed sequence format, i.e. if `packed_sequence_mask[:, -1] == 0`
     # but it causes issues with export
     return packed_sequence_mask
-    
-    
+
+
 def _preprocess_mask_arguments(
     config: PreTrainedConfig,
     input_embeds: torch.Tensor,
@@ -347,15 +346,15 @@ def _preprocess_mask_arguments(
     """
     if isinstance(attention_mask, torch.Tensor) and len(attention_mask.shape) == 4:
         return True, attention_mask, None, None, None
-        
+
     if attention_mask is not None and attention_mask.ndim == 2:
         attention_mask = attention_mask.to(device=cache_position.device, dtype=torch.bool)
-    
+
     if past_key_values is not None:
         kv_length, kv_offset = past_key_values.get_mask_sizes(cache_position, layer_idx)
     else:
         kv_length, kv_offset = input_embeds.shape[1], 0
-        
+
     # We check the position_ids for potential packed sequence format (only if the 2D attention mask is explicitly None,
     # and we don't have past_key_values, i.e. generally a training setup)
     packed_sequence_mask = None
@@ -367,7 +366,7 @@ def _preprocess_mask_arguments(
         packed_sequence_mask = find_packed_sequence_indices(position_ids)
 
     return False, attention_mask, packed_sequence_mask, kv_length, kv_offset
-    
+
 
 def create_causal_mask(
     config: PreTrainedConfig,
@@ -381,7 +380,7 @@ def create_causal_mask(
     Create a standard causal mask based on the attention implementation used (stored in the config)
     If `past_key_values` has an hybrid cache structure, this function will return the mask corresponding
     to one of the "full_attention" layers (to align to what is needed in the `modeling_xxx.py` files).
-    
+
     Args:
         config (`PreTrainedConfig`):
             The model config.
@@ -403,16 +402,24 @@ def create_causal_mask(
         layer_idx = past_key_values.is_sliding.index(False)
     else:
         layer_idx = 0
-        
-    early_exit, attention_mask, packed_sequence_mask, kv_length, kv_offset = _preprocess_mask_arguments(
-        config, input_embeds, attention_mask, cache_position, past_key_values, position_ids, layer_idx
+
+    early_exit, attention_mask, packed_sequence_mask, kv_length, kv_offset = (
+        _preprocess_mask_arguments(
+            config,
+            input_embeds,
+            attention_mask,
+            cache_position,
+            past_key_values,
+            position_ids,
+            layer_idx,
+        )
     )
     if early_exit:
         return attention_mask
 
     batch_size, dtype = input_embeds.shape[0], input_embeds.dtype
     mask_factory_function = causal_mask_function
-    mask_interface = ALL_MASK_ATTENTION_FUNCTIONS[config._attn_implementation] # type: ignore
+    mask_interface = ALL_MASK_ATTENTION_FUNCTIONS[config._attn_implementation]  # type: ignore
 
     # We now create the mask
     causal_mask = mask_interface(
@@ -426,6 +433,3 @@ def create_causal_mask(
         config=config,  # Pass the config as well, in case someone wants to easily have their own mask_interface
     )
     return causal_mask
-    
-    
-    

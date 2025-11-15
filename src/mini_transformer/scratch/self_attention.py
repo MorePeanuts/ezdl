@@ -100,10 +100,10 @@ class CausalAttention(nn.Module):
         # along with the model - which means we don't need to manually ensure these
         # tensors are on the same device as the model parameters, thus avoiding
         # device mismatch errors.
-        self.register_buffer("mask", torch.tril(tmp, diagonal=1))
+        self.register_buffer('mask', torch.tril(tmp, diagonal=1))
 
     def forward(self, x):
-        assert x.ndim == 3, "Input must be a 3D tensor"
+        assert x.ndim == 3, 'Input must be a 3D tensor'
         batch_size, sequence_length, _embed_dim = x.shape
         k = self.W_k(x)
         q = self.W_q(x)
@@ -142,7 +142,7 @@ class MultiHeadAttentionWrapper(nn.Module):
             qkv_bias (bool, optional): Whether to include bias in Q/K/V linear layers. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
         head_dim = d_out // num_heads
         self.heads = nn.ModuleList(
             [
@@ -183,7 +183,7 @@ class MultiHeadAttention(nn.Module):
             qkv_bias (bool, optional): Whether to include bias in Q/K/V linear projections. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
         self.num_heads = num_heads
         self.head_dim = d_out // num_heads
         self.d_out = d_out
@@ -194,7 +194,7 @@ class MultiHeadAttention(nn.Module):
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout(dropout)
         tmp = torch.ones(context_length, context_length)
-        self.register_buffer("mask", torch.triu(tmp, diagonal=1))
+        self.register_buffer('mask', torch.triu(tmp, diagonal=1))
 
     def forward(self, x):
         batch_size, sequence_length, _embed_dim = x.shape
@@ -216,16 +216,12 @@ class MultiHeadAttention(nn.Module):
         attn_scores.masked_fill_(mask, -torch.inf)
         attn_weights = torch.softmax(attn_scores / sqrt(d_k), dim=-1)
         attn_weights = self.dropout(attn_weights)
-        context_vecs = (attn_weights @ v).transpose(
-            1, 2
-        )  # Swap back num_heads and sequence_length
+        context_vecs = (attn_weights @ v).transpose(1, 2)  # Swap back num_heads and sequence_length
 
         # Merge multiple heads into one dimension. Since context_vecs has undergone
         # transpose operation, it is necessary to first use contiguous to ensure that
         # it is continuous in memory.
-        context_vecs = context_vecs.contiguous().view(
-            batch_size, sequence_length, self.d_out
-        )
+        context_vecs = context_vecs.contiguous().view(batch_size, sequence_length, self.d_out)
         context_vecs = self.out_proj(context_vecs)  # Apply output projection
 
         return context_vecs
@@ -258,7 +254,7 @@ class MultiHeadAttentionCombinedQKV(nn.Module):
             qkv_bias (bool, optional): Whether to include bias in the combined Q/K/V linear projection. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
 
         self.num_heads = num_heads
         self.context_length = context_length
@@ -269,15 +265,13 @@ class MultiHeadAttentionCombinedQKV(nn.Module):
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout(dropout)
         tmp = torch.ones(context_length, context_length)
-        self.register_buffer("mask", torch.triu(tmp, diagonal=1))
+        self.register_buffer('mask', torch.triu(tmp, diagonal=1))
 
     def forward(self, x):
         batch_size, sequence_length, _embed_dim = x.shape
 
         # The shape of self.W_qkv(x) is (batch_size, sequence_length, d_out * 3)
-        qkv = self.W_qkv(x).view(
-            batch_size, sequence_length, 3, self.num_heads, self.head_dim
-        )
+        qkv = self.W_qkv(x).view(batch_size, sequence_length, 3, self.num_heads, self.head_dim)
         # After permutation, the shape becomes (3, batch_size, num_heads, sequence_length, head_dim)
         qkv = qkv.permute(2, 0, 3, 1, 4).contiguous()
         q, k, v = qkv.unbind(0)
@@ -291,9 +285,7 @@ class MultiHeadAttentionCombinedQKV(nn.Module):
 
         # Swap num_heads and sequence_length, and then merge multiple heads
         context_vecs = (attn_weights @ v).transpose(1, 2)
-        context_vecs = context_vecs.contiguous().view(
-            batch_size, sequence_length, self.d_out
-        )
+        context_vecs = context_vecs.contiguous().view(batch_size, sequence_length, self.d_out)
         context_vecs = self.out_proj(context_vecs)
 
         return context_vecs
@@ -326,7 +318,7 @@ class MultiHeadAttentionEinsum(nn.Module):
             qkv_bias (bool, optional): Whether to include bias terms for Q, K, and V projections. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
         self.head_dim = d_out // num_heads
         self.num_heads = num_heads
         self.d_out = d_out
@@ -340,14 +332,14 @@ class MultiHeadAttentionEinsum(nn.Module):
             self.bias_k = nn.Parameter(torch.zeros(d_out))
             self.bias_v = nn.Parameter(torch.zeros(d_out))
         else:
-            self.register_parameter("bias_q", None)
-            self.register_parameter("bias_k", None)
-            self.register_parameter("bias_v", None)
+            self.register_parameter('bias_q', None)
+            self.register_parameter('bias_k', None)
+            self.register_parameter('bias_v', None)
 
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout(dropout)
         tmp = torch.ones(context_length, context_length)
-        self.register_buffer("mask", torch.triu(tmp, diagonal=1))
+        self.register_buffer('mask', torch.triu(tmp, diagonal=1))
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -363,9 +355,9 @@ class MultiHeadAttentionEinsum(nn.Module):
 
     def forward(self, x):
         b, n, _ = x.shape
-        q = torch.einsum("bni,di->bnd", x, self.W_q)
-        k = torch.einsum("bni,di->bnd", x, self.W_k)
-        v = torch.einsum("bni,di->bnd", x, self.W_v)
+        q = torch.einsum('bni,di->bnd', x, self.W_q)
+        k = torch.einsum('bni,di->bnd', x, self.W_k)
+        v = torch.einsum('bni,di->bnd', x, self.W_v)
 
         if self.bias_q is not None:
             q += self.bias_q
@@ -377,12 +369,12 @@ class MultiHeadAttentionEinsum(nn.Module):
         v = v.view(b, n, self.num_heads, self.head_dim).transpose(1, 2)
         d_k = k.shape[-1]
 
-        attn_scores = torch.einsum("bhnd,bhmd->bhnm", q, k)
+        attn_scores = torch.einsum('bhnd,bhmd->bhnm', q, k)
         mask = self.mask.bool()[:n, :n]  # type: ignore
         attn_scores.masked_fill_(mask, -torch.inf)
         attn_weights = torch.softmax(attn_scores / sqrt(d_k), dim=-1)
         attn_weights = self.dropout(attn_weights)
-        context_vecs = torch.einsum("bhnm,bhmd->bhnd", attn_weights, v)
+        context_vecs = torch.einsum('bhnm,bhmd->bhnd', attn_weights, v)
         context_vecs = context_vecs.transpose(1, 2).reshape(b, n, self.d_out)
         context_vecs = self.out_proj(context_vecs)
 
@@ -418,7 +410,7 @@ class MultiHeadAttentionScaledDotProduct(nn.Module):
             qkv_bias (bool, optional): Whether to include bias in the combined Q/K/V linear projection. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out is indivisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out is indivisible by num_heads'
         self.num_heads = num_heads
         self.head_dim = d_out // num_heads
         self.d_out = d_out
@@ -501,7 +493,7 @@ class MultiHeadAttentionPytorch(nn.Module):
         self.need_weights = need_weights
         self.out_proj = nn.Linear(embed_dim, embed_dim)
         tmp = torch.ones(context_length, context_length)
-        self.register_buffer("mask", torch.triu(tmp, diagonal=1))
+        self.register_buffer('mask', torch.triu(tmp, diagonal=1))
 
     def forward(self, x):
         b, n, _ = x.shape
@@ -557,7 +549,7 @@ class FlashAttentionScratch(nn.Module):
             block_size (int, optional): Block size for computing attention. Defaults to 64.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
         self.num_heads = num_heads
         self.head_dim = d_out // num_heads
         self.d_out = d_out
@@ -585,9 +577,9 @@ class FlashAttentionScratch(nn.Module):
             Updated max_score, sum_exp, and probabilities
         """
         new_max = torch.maximum(max_score, scores.max(dim=-1, keepdim=True)[0])
-        new_sum_exp = sum_exp * torch.exp(max_score - new_max) + torch.exp(
-            scores - new_max
-        ).sum(dim=-1, keepdim=True)
+        new_sum_exp = sum_exp * torch.exp(max_score - new_max) + torch.exp(scores - new_max).sum(
+            dim=-1, keepdim=True
+        )
 
         # Handle numerical stability
         new_sum_exp = torch.clamp(new_sum_exp, min=1e-8)
@@ -613,30 +605,22 @@ class FlashAttentionScratch(nn.Module):
         # Process attention in blocks to demonstrate Flash Attention concept
         for i in range(0, sequence_length, self.block_size):
             i_end = min(i + self.block_size, sequence_length)
-            q_block = q[
-                :, :, i:i_end, :
-            ]  # (batch_size, num_heads, block_size, head_dim)
+            q_block = q[:, :, i:i_end, :]  # (batch_size, num_heads, block_size, head_dim)
 
             # Initialize running statistics for this block
             block_output = torch.zeros_like(q_block)
             block_max = torch.full(
                 (batch_size, self.num_heads, i_end - i, 1),
-                -float("inf"),
+                -float('inf'),
                 device=x.device,
             )
-            block_sum = torch.zeros(
-                (batch_size, self.num_heads, i_end - i, 1), device=x.device
-            )
+            block_sum = torch.zeros((batch_size, self.num_heads, i_end - i, 1), device=x.device)
 
             # Process keys and values in blocks
             for j in range(0, sequence_length, self.block_size):
                 j_end = min(j + self.block_size, sequence_length)
-                k_block = k[
-                    :, :, j:j_end, :
-                ]  # (batch_size, num_heads, block_size, head_dim)
-                v_block = v[
-                    :, :, j:j_end, :
-                ]  # (batch_size, num_heads, block_size, head_dim)
+                k_block = k[:, :, j:j_end, :]  # (batch_size, num_heads, block_size, head_dim)
+                v_block = v[:, :, j:j_end, :]  # (batch_size, num_heads, block_size, head_dim)
 
                 # Compute attention scores for current block pair
                 scores = q_block @ k_block.transpose(
@@ -661,7 +645,7 @@ class FlashAttentionScratch(nn.Module):
                         .unsqueeze(0)
                         .expand(batch_size, self.num_heads, -1, -1)
                     )
-                    scores.masked_fill_(mask_bool, -float("inf"))
+                    scores.masked_fill_(mask_bool, -float('inf'))
 
                 # Online softmax with running statistics
                 new_max, new_sum = self._softmax_online(scores, block_max, block_sum)
@@ -721,10 +705,8 @@ class GroupedQueryAttention(nn.Module):
             qkv_bias (bool, optional): Whether to include bias in Q/K/V linear projections. Defaults to False.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
-        assert num_heads % num_kv_groups == 0, (
-            "num_heads must be divisible by num_kv_groups"
-        )
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
+        assert num_heads % num_kv_groups == 0, 'num_heads must be divisible by num_kv_groups'
 
         self.d_out = d_out
         self.num_heads = num_heads
@@ -738,24 +720,16 @@ class GroupedQueryAttention(nn.Module):
         self.out_proj = nn.Linear(d_out, d_out, bias=False)
         self.dropout = nn.Dropout(dropout)
 
-        self.register_buffer("cache_k", None, persistent=False)
-        self.register_buffer("cache_v", None, persistent=False)
+        self.register_buffer('cache_k', None, persistent=False)
+        self.register_buffer('cache_v', None, persistent=False)
         self.ptr = 0
 
     def forward(self, x, use_cache=False):
         bz, seq_len, _ = x.shape
 
         q = self.W_q(x).view(bz, seq_len, self.num_heads, self.head_dim).transpose(1, 2)
-        k = (
-            self.W_k(x)
-            .view(bz, seq_len, self.num_kv_groups, self.head_dim)
-            .transpose(1, 2)
-        )
-        v = (
-            self.W_v(x)
-            .view(bz, seq_len, self.num_kv_groups, self.head_dim)
-            .transpose(1, 2)
-        )
+        k = self.W_k(x).view(bz, seq_len, self.num_kv_groups, self.head_dim).transpose(1, 2)
+        v = self.W_v(x).view(bz, seq_len, self.num_kv_groups, self.head_dim).transpose(1, 2)
 
         if use_cache:
             if self.cache_k is None:
@@ -820,9 +794,7 @@ class MultiHeadLatentAttention(nn.Module):
     Output shape: (batch_size, sequence_length, d_out)
     """
 
-    def __init__(
-        self, d_in, d_out, dropout, num_heads, qkv_bias=False, latent_dim=None
-    ):
+    def __init__(self, d_in, d_out, dropout, num_heads, qkv_bias=False, latent_dim=None):
         """
         Initialize the MultiHeadLatentAttention module.
 
@@ -836,7 +808,7 @@ class MultiHeadLatentAttention(nn.Module):
                 If None, defaults to max(16, d_out // 8). Defaults to None.
         """
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by num_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by num_heads'
 
         self.d_out = d_out
         self.num_heads = num_heads
@@ -850,7 +822,7 @@ class MultiHeadLatentAttention(nn.Module):
         self.out_proj = nn.Linear(d_out, d_out)
         self.dropout = nn.Dropout(dropout)
 
-        self.register_buffer("cache_c_kv", None, persistent=False)
+        self.register_buffer('cache_c_kv', None, persistent=False)
         self.ptr = 0
 
     def forward(self, x, use_cache=False):
@@ -867,30 +839,16 @@ class MultiHeadLatentAttention(nn.Module):
         k = self.W_up_k(latent)
         v = self.W_up_v(latent)
 
-        q = (
-            q.view(bz, seq_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
-        k = (
-            k.view(bz, seq_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
-        v = (
-            v.view(bz, seq_len, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-            .contiguous()
-        )
+        q = q.view(bz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        k = k.view(bz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+        v = v.view(bz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
         attn_scores = q @ k.transpose(-2, -1)
         num_tokens_q = q.shape[-2]
         num_tokens_k = k.shape[-2]
 
         if use_cache:
-            q_positions = torch.arange(
-                self.ptr, self.ptr + num_tokens_q, device=q.device
-            )
+            q_positions = torch.arange(self.ptr, self.ptr + num_tokens_q, device=q.device)
             self.ptr += num_tokens_q
         else:
             q_positions = torch.arange(num_tokens_q, device=q.device)

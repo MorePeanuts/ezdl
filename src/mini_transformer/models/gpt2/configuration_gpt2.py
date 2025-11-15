@@ -34,27 +34,28 @@ class GPT2Config(PreTrainedConfig):
             Whether to include learned bias terms in the query, key, and value linear projections of attention.
         use_cache (bool):
             Whether to enable key/value caching for faster autoregressive generation (useful during inference).
-        kv_window_size (int): 
+        kv_window_size (int):
             The size of the window for cached keys/values when using a limited or sliding attention cache, controlling how many past tokens are retained for attention. # TODO When implementing dynamic caching, this parameter should be removed. Only used in scratch/gpt2_with_kv_cache_optimized.py now.
     """
-    
+
     model_type = 'gpt2'
     attribute_map = {
         'hidden_size': 'embd_dim',
         'max_position_embeddings': 'context_length',
         'num_attention_heads': 'n_head',
-        'num_hidden_layers': 'n_layer'
+        'num_hidden_layers': 'n_layer',
     }
 
     def __init__(
         self,
         vocab_size: int = 50257,
         num_labels: int = 2,
-        context_length: int = 1024, # n_positions
+        context_length: int = 1024,  # n_positions
         embd_dim: int = 768,
         n_head: int = 12,
         n_layer: int = 12,
-        n_inner: int | None = None, # inner feed-forward layers. `None` will set it to 4 times n_embd
+        n_inner: int
+        | None = None,  # inner feed-forward layers. `None` will set it to 4 times n_embd
         activation_func: str = 'gelu_scratch',
         resid_pdrop: float = 0.1,
         embd_pdrop: float = 0.1,

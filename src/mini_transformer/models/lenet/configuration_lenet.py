@@ -3,11 +3,10 @@ from ..configuration_utils import PreTrainedConfig
 
 
 class LeNetConfig(PreTrainedConfig):
-    """
-    """
-    
+    """ """
+
     model_type = 'lenet'
-    
+
     def __init__(
         self,
         num_classes: int = 10,

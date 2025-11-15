@@ -2,9 +2,8 @@ from ..configuration_utils import PreTrainedConfig
 
 
 class NiNConfig(PreTrainedConfig):
-    
     model_type = 'nin'
-    
+
     def __init__(
         self,
         num_classes: int = 1000,
@@ -29,5 +28,10 @@ class NiNConfig(PreTrainedConfig):
         self.pool_kernel_size = pool_kernel_size
         self.pool_stride = pool_stride
         self.pool_padding = pool_padding
-        
-        assert len(self.nin_out_channels) == len(self.nin_kernel_size) == len(self.nin_stride) == len(self.nin_padding)
+
+        assert (
+            len(self.nin_out_channels)
+            == len(self.nin_kernel_size)
+            == len(self.nin_stride)
+            == len(self.nin_padding)
+        )

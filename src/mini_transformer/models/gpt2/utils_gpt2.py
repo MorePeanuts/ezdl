@@ -5,12 +5,10 @@ from ...tokenizer.tokenizer_utils import Tokenizer
 
 
 @deprecated(
-    version="1.0.0",
-    reason="This function will be replaced by `generate` method of GenerateMixin class in the future..",
+    version='1.0.0',
+    reason='This function will be replaced by `generate` method of GenerateMixin class in the future..',
 )
-def generate_text_simple(
-    model, input_ids, max_new_tokens, context_length
-) -> torch.Tensor:
+def generate_text_simple(model, input_ids, max_new_tokens, context_length) -> torch.Tensor:
     """
     Generate text using a simple greedy sampling approach.
 
@@ -39,7 +37,7 @@ def generate_text_simple(
     return input_ids
 
 
-def text_to_token_ids(text, tokenizer: Tokenizer, allowed_special={"<|endoftext|>"}):
+def text_to_token_ids(text, tokenizer: Tokenizer, allowed_special={'<|endoftext|>'}):
     """
     Convert text to token IDs using the provided tokenizer.
 
@@ -52,10 +50,10 @@ def text_to_token_ids(text, tokenizer: Tokenizer, allowed_special={"<|endoftext|
         torch.Tensor: The token IDs.
     """
     encoded_text = tokenizer.encode(text, allowed_special=allowed_special)
-    encoded_tensor = torch.tensor(encoded_text).unsqueeze(0) # add batch dimension
+    encoded_tensor = torch.tensor(encoded_text).unsqueeze(0)  # add batch dimension
     return encoded_tensor
 
-    
+
 def token_ids_to_text(token_ids, tokenizer: Tokenizer):
     """
     Convert token IDs to text using the provided tokenizer.
@@ -69,8 +67,8 @@ def token_ids_to_text(token_ids, tokenizer: Tokenizer):
     """
     flat = token_ids.squeeze(0)
     return tokenizer.decode(flat.tolist())
-    
-    
+
+
 def calc_loss_batch(input_batch, target_batch, model, device, last_token_only=False):
     """
     Calculate the loss for a batch of input and target data.
@@ -109,9 +107,9 @@ def calc_loss_dataloader(dataloader, model, device, num_batches=None, last_token
     Returns:
         float: The average loss value.
     """
-    total_loss = 0.
+    total_loss = 0.0
     if len(dataloader) == 0:
-        return float("nan")
+        return float('nan')
     elif num_batches is None:
         num_batches = len(dataloader)
     else:
@@ -123,8 +121,8 @@ def calc_loss_dataloader(dataloader, model, device, num_batches=None, last_token
         else:
             break
     return total_loss / num_batches
-    
-    
+
+
 def calc_accuracy_dataloader(dataloader, model, device, num_batches=None):
     """
     Calculate the accuracy for a dataloader.
@@ -140,21 +138,21 @@ def calc_accuracy_dataloader(dataloader, model, device, num_batches=None):
     """
     model.eval()
     correct_predictions, num_samples = 0, 0
-    
+
     if num_batches is None:
         num_batches = len(dataloader)
     else:
         num_batches = min(num_batches, len(dataloader))
-        
+
     for i, (input_batch, target_batch) in enumerate(dataloader):
         if i < num_batches:
             input_batch, target_batch = input_batch.to(device), target_batch.to(device)
-            
+
             with torch.no_grad():
                 logits = model(input_batch)[:, -1]
             predictions = torch.argmax(logits, dim=-1)
             num_samples += predictions.size(0)
             correct_predictions += (predictions == target_batch).sum().item()
         else:
-            break 
+            break
     return correct_predictions / num_samples

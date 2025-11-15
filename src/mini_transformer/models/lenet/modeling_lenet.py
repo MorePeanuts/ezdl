@@ -5,15 +5,14 @@ from .configuration_lenet import LeNetConfig
 
 
 class LeNetPreTrainedModel(PreTrainedModel):
-    """
-    """
+    """ """
 
     config_class = LeNetConfig
-    base_model_prefix = "cnn"
+    base_model_prefix = 'cnn'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    
+
     def _init_weights(self, module):
         if isinstance(module, nn.Linear | nn.Conv2d):
             nn.init.xavier_uniform_(module.weight)
@@ -26,9 +25,9 @@ class LeNetModel(LeNetPreTrainedModel):
 
     def __init__(self, config: LeNetConfig):
         super().__init__(config)
-        
+
         c1_in_channels, in_size = config.in_features[0], config.in_features[1:]
-        
+
         self.net = nn.Sequential(
             nn.Conv2d(
                 in_channels=c1_in_channels,
@@ -56,16 +55,12 @@ class LeNetModel(LeNetPreTrainedModel):
                 padding=config.p2_padding,
             ),
             nn.Flatten(),
-            nn.LazyLinear(
-                out_features=config.fc1_out_features
-            ),
+            nn.LazyLinear(out_features=config.fc1_out_features),
             nn.Sigmoid(),
-            nn.LazyLinear(
-                out_features=config.fc2_out_features
-            ),
+            nn.LazyLinear(out_features=config.fc2_out_features),
             nn.Sigmoid(),
         )
-        
+
         self.net(torch.randn(1, c1_in_channels, *in_size))
 
     def forward(self, x):

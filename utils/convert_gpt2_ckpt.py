@@ -13,23 +13,21 @@ import tiktoken
 import torch.nn as nn
 from pathlib import Path
 from mini_transformer.models.gpt2 import (
-    GPT2Config, 
-    GPT2ModelForCausalLM, 
+    GPT2Config,
+    GPT2ModelForCausalLM,
     generate_text_simple,
-    token_ids_to_text
+    token_ids_to_text,
 )
 
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_in, d_out, context_length, dropout, num_heads, qkv_bias=False):
         super().__init__()
-        assert d_out % num_heads == 0, "d_out must be divisible by n_heads"
+        assert d_out % num_heads == 0, 'd_out must be divisible by n_heads'
 
         self.d_out = d_out
         self.num_heads = num_heads
-        self.head_dim = (
-            d_out // num_heads
-        )  # Reduce the projection dim to match desired output dim
+        self.head_dim = d_out // num_heads  # Reduce the projection dim to match desired output dim
 
         self.W_query = nn.Linear(d_in, d_out, bias=qkv_bias)
         self.W_key = nn.Linear(d_in, d_out, bias=qkv_bias)
@@ -37,7 +35,7 @@ class MultiHeadAttention(nn.Module):
         self.out_proj = nn.Linear(d_out, d_out)  # Linear layer to combine head outputs
         self.dropout = nn.Dropout(dropout)
         self.register_buffer(
-            "mask", torch.triu(torch.ones(context_length, context_length), diagonal=1)
+            'mask', torch.triu(torch.ones(context_length, context_length), diagonal=1)
         )
 
     def forward(self, x):
@@ -105,8 +103,7 @@ class GELU(nn.Module):
             * (
                 1
                 + torch.tanh(
-                    torch.sqrt(torch.tensor(2.0 / torch.pi))
-                    * (x + 0.044715 * torch.pow(x, 3))
+                    torch.sqrt(torch.tensor(2.0 / torch.pi)) * (x + 0.044715 * torch.pow(x, 3))
                 )
             )
         )
@@ -116,9 +113,9 @@ class FeedForward(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.layers = nn.Sequential(
-            nn.Linear(cfg["emb_dim"], 4 * cfg["emb_dim"]),
+            nn.Linear(cfg['emb_dim'], 4 * cfg['emb_dim']),
             GELU(),
-            nn.Linear(4 * cfg["emb_dim"], cfg["emb_dim"]),
+            nn.Linear(4 * cfg['emb_dim'], cfg['emb_dim']),
         )
 
     def forward(self, x):
@@ -129,17 +126,17 @@ class TransformerBlock(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.att = MultiHeadAttention(
-            d_in=cfg["emb_dim"],
-            d_out=cfg["emb_dim"],
-            context_length=cfg["context_length"],
-            num_heads=cfg["n_heads"],
-            dropout=cfg["drop_rate"],
-            qkv_bias=cfg["qkv_bias"],
+            d_in=cfg['emb_dim'],
+            d_out=cfg['emb_dim'],
+            context_length=cfg['context_length'],
+            num_heads=cfg['n_heads'],
+            dropout=cfg['drop_rate'],
+            qkv_bias=cfg['qkv_bias'],
         )
         self.ff = FeedForward(cfg)
-        self.norm1 = LayerNorm(cfg["emb_dim"])
-        self.norm2 = LayerNorm(cfg["emb_dim"])
-        self.drop_shortcut = nn.Dropout(cfg["drop_rate"])
+        self.norm1 = LayerNorm(cfg['emb_dim'])
+        self.norm2 = LayerNorm(cfg['emb_dim'])
+        self.drop_shortcut = nn.Dropout(cfg['drop_rate'])
 
     def forward(self, x):
         # Shortcut connection for attention block
@@ -162,16 +159,14 @@ class TransformerBlock(nn.Module):
 class GPTModel(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
-        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
-        self.drop_emb = nn.Dropout(cfg["drop_rate"])
+        self.tok_emb = nn.Embedding(cfg['vocab_size'], cfg['emb_dim'])
+        self.pos_emb = nn.Embedding(cfg['context_length'], cfg['emb_dim'])
+        self.drop_emb = nn.Dropout(cfg['drop_rate'])
 
-        self.trf_blocks = nn.Sequential(
-            *[TransformerBlock(cfg) for _ in range(cfg["n_layers"])]
-        )
+        self.trf_blocks = nn.Sequential(*[TransformerBlock(cfg) for _ in range(cfg['n_layers'])])
 
-        self.final_norm = LayerNorm(cfg["emb_dim"])
-        self.out_head = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False)
+        self.final_norm = LayerNorm(cfg['emb_dim'])
+        self.out_head = nn.Linear(cfg['emb_dim'], cfg['vocab_size'], bias=False)
 
     def forward(self, in_idx):
         batch_size, seq_len = in_idx.shape
@@ -186,42 +181,42 @@ class GPTModel(nn.Module):
 
 
 CONFIG = {
-    "124m": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
-    "355m": {"emb_dim": 1024, "n_layers": 24, "n_heads": 16},
-    "774m": {"emb_dim": 1280, "n_layers": 36, "n_heads": 20},
-    "1558m": {"emb_dim": 1600, "n_layers": 48, "n_heads": 25},
+    '124m': {'emb_dim': 768, 'n_layers': 12, 'n_heads': 12},
+    '355m': {'emb_dim': 1024, 'n_layers': 24, 'n_heads': 16},
+    '774m': {'emb_dim': 1280, 'n_layers': 36, 'n_heads': 20},
+    '1558m': {'emb_dim': 1600, 'n_layers': 48, 'n_heads': 25},
 }
 CONFIG = {
     key: {
         **config,
-        "vocab_size": 50257,
-        "context_length": 1024,
-        "qkv_bias": True,
-        "drop_rate": 0.1,
+        'vocab_size': 50257,
+        'context_length': 1024,
+        'qkv_bias': True,
+        'drop_rate': 0.1,
     }
     for key, config in CONFIG.items()
 }
 TO_CONFIG = {
-    "124m": GPT2Config(qkv_bias=True),
-    "355m": GPT2Config(qkv_bias=True, embd_dim=1024, n_layer=24, n_head=16),
-    "774m": GPT2Config(qkv_bias=True, embd_dim=1280, n_layer=36, n_head=20),
-    "1558m": GPT2Config(qkv_bias=True, embd_dim=1600, n_layer=48, n_head=25),
+    '124m': GPT2Config(qkv_bias=True),
+    '355m': GPT2Config(qkv_bias=True, embd_dim=1024, n_layer=24, n_head=16),
+    '774m': GPT2Config(qkv_bias=True, embd_dim=1280, n_layer=36, n_head=20),
+    '1558m': GPT2Config(qkv_bias=True, embd_dim=1600, n_layer=48, n_head=25),
 }
 
 
 def download_gpt2_and_load():
-    print(f"downloading gpt2_{args.gpt2_version}")
+    print(f'downloading gpt2_{args.gpt2_version}')
 
     file_name_map = {
-        "124m": "gpt2-small-124M.pth",
-        "355m": "gpt2-medium-355M.pth",
-        "774m": "gpt2-large-774M.pth",
-        "1558m": "gpt2-xl-1558M.pth",
+        '124m': 'gpt2-small-124M.pth',
+        '355m': 'gpt2-medium-355M.pth',
+        '774m': 'gpt2-large-774M.pth',
+        '1558m': 'gpt2-xl-1558M.pth',
     }
     file_name = file_name_map[args.gpt2_version]
-    url = f"https://huggingface.co/rasbt/gpt2-from-scratch-pytorch/resolve/main/{file_name}"
+    url = f'https://huggingface.co/rasbt/gpt2-from-scratch-pytorch/resolve/main/{file_name}'
 
-    with tempfile.NamedTemporaryFile(suffix=".pth", mode="wb") as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix='.pth', mode='wb') as tmp_file:
         with urllib.request.urlopen(url) as response:  # type: ignore
             tmp_file.write(response.read())
 
@@ -242,132 +237,114 @@ def convert_ckpt(model: GPTModel) -> GPT2ModelForCausalLM:
     param_mapping = {}
 
     # Embedding layers
-    param_mapping["model.tok_embd.weight"] = "tok_emb.weight"
-    param_mapping["model.pos_embd.weight"] = "pos_emb.weight"
+    param_mapping['model.tok_embd.weight'] = 'tok_emb.weight'
+    param_mapping['model.pos_embd.weight'] = 'pos_emb.weight'
 
     # Output head
-    param_mapping["lm_head.weight"] = "out_head.weight"
+    param_mapping['lm_head.weight'] = 'out_head.weight'
 
     # Final layer norm
-    param_mapping["model.final_norm.scale"] = "final_norm.scale"
-    param_mapping["model.final_norm.shift"] = "final_norm.shift"
+    param_mapping['model.final_norm.scale'] = 'final_norm.scale'
+    param_mapping['model.final_norm.shift'] = 'final_norm.shift'
 
     # Transformer blocks
-    n_layers = CONFIG[args.gpt2_version]["n_layers"]
+    n_layers = CONFIG[args.gpt2_version]['n_layers']
     for i in range(n_layers):
         # Attention layers
-        param_mapping[f"model.trf_blocks.{i}.attn.W_q.weight"] = (
-            f"trf_blocks.{i}.att.W_query.weight"
+        param_mapping[f'model.trf_blocks.{i}.attn.W_q.weight'] = (
+            f'trf_blocks.{i}.att.W_query.weight'
         )
-        param_mapping[f"model.trf_blocks.{i}.attn.W_q.bias"] = (
-            f"trf_blocks.{i}.att.W_query.bias"
+        param_mapping[f'model.trf_blocks.{i}.attn.W_q.bias'] = f'trf_blocks.{i}.att.W_query.bias'
+        param_mapping[f'model.trf_blocks.{i}.attn.W_k.weight'] = f'trf_blocks.{i}.att.W_key.weight'
+        param_mapping[f'model.trf_blocks.{i}.attn.W_k.bias'] = f'trf_blocks.{i}.att.W_key.bias'
+        param_mapping[f'model.trf_blocks.{i}.attn.W_v.weight'] = (
+            f'trf_blocks.{i}.att.W_value.weight'
         )
-        param_mapping[f"model.trf_blocks.{i}.attn.W_k.weight"] = (
-            f"trf_blocks.{i}.att.W_key.weight"
+        param_mapping[f'model.trf_blocks.{i}.attn.W_v.bias'] = f'trf_blocks.{i}.att.W_value.bias'
+        param_mapping[f'model.trf_blocks.{i}.attn.out_proj.weight'] = (
+            f'trf_blocks.{i}.att.out_proj.weight'
         )
-        param_mapping[f"model.trf_blocks.{i}.attn.W_k.bias"] = (
-            f"trf_blocks.{i}.att.W_key.bias"
+        param_mapping[f'model.trf_blocks.{i}.attn.out_proj.bias'] = (
+            f'trf_blocks.{i}.att.out_proj.bias'
         )
-        param_mapping[f"model.trf_blocks.{i}.attn.W_v.weight"] = (
-            f"trf_blocks.{i}.att.W_value.weight"
-        )
-        param_mapping[f"model.trf_blocks.{i}.attn.W_v.bias"] = (
-            f"trf_blocks.{i}.att.W_value.bias"
-        )
-        param_mapping[f"model.trf_blocks.{i}.attn.out_proj.weight"] = (
-            f"trf_blocks.{i}.att.out_proj.weight"
-        )
-        param_mapping[f"model.trf_blocks.{i}.attn.out_proj.bias"] = (
-            f"trf_blocks.{i}.att.out_proj.bias"
-        )
-        param_mapping[f"model.trf_blocks.{i}.attn.mask"] = f"trf_blocks.{i}.att.mask"
+        param_mapping[f'model.trf_blocks.{i}.attn.mask'] = f'trf_blocks.{i}.att.mask'
 
         # Feed forward layers
-        param_mapping[f"model.trf_blocks.{i}.ffn.layers.0.weight"] = (
-            f"trf_blocks.{i}.ff.layers.0.weight"
+        param_mapping[f'model.trf_blocks.{i}.ffn.layers.0.weight'] = (
+            f'trf_blocks.{i}.ff.layers.0.weight'
         )
-        param_mapping[f"model.trf_blocks.{i}.ffn.layers.0.bias"] = (
-            f"trf_blocks.{i}.ff.layers.0.bias"
+        param_mapping[f'model.trf_blocks.{i}.ffn.layers.0.bias'] = (
+            f'trf_blocks.{i}.ff.layers.0.bias'
         )
-        param_mapping[f"model.trf_blocks.{i}.ffn.layers.2.weight"] = (
-            f"trf_blocks.{i}.ff.layers.2.weight"
+        param_mapping[f'model.trf_blocks.{i}.ffn.layers.2.weight'] = (
+            f'trf_blocks.{i}.ff.layers.2.weight'
         )
-        param_mapping[f"model.trf_blocks.{i}.ffn.layers.2.bias"] = (
-            f"trf_blocks.{i}.ff.layers.2.bias"
+        param_mapping[f'model.trf_blocks.{i}.ffn.layers.2.bias'] = (
+            f'trf_blocks.{i}.ff.layers.2.bias'
         )
 
         # Layer norm layers
-        param_mapping[f"model.trf_blocks.{i}.norm1.scale"] = (
-            f"trf_blocks.{i}.norm1.scale"
-        )
-        param_mapping[f"model.trf_blocks.{i}.norm1.shift"] = (
-            f"trf_blocks.{i}.norm1.shift"
-        )
-        param_mapping[f"model.trf_blocks.{i}.norm2.scale"] = (
-            f"trf_blocks.{i}.norm2.scale"
-        )
-        param_mapping[f"model.trf_blocks.{i}.norm2.shift"] = (
-            f"trf_blocks.{i}.norm2.shift"
-        )
+        param_mapping[f'model.trf_blocks.{i}.norm1.scale'] = f'trf_blocks.{i}.norm1.scale'
+        param_mapping[f'model.trf_blocks.{i}.norm1.shift'] = f'trf_blocks.{i}.norm1.shift'
+        param_mapping[f'model.trf_blocks.{i}.norm2.scale'] = f'trf_blocks.{i}.norm2.scale'
+        param_mapping[f'model.trf_blocks.{i}.norm2.shift'] = f'trf_blocks.{i}.norm2.shift'
 
     # Copy parameters from source to destination
     for dst_key, src_key in param_mapping.items():
         if src_key in src_state_dict and dst_key in dst_state_dict:
             dst_state_dict[dst_key].copy_(src_state_dict[src_key])
         else:
-            print(f"Warning: {src_key} -> {dst_key} mapping failed")
+            print(f'Warning: {src_key} -> {dst_key} mapping failed')
 
     return gpt2_model
 
 
 def main():
-    model_directory = Path(__file__).parents[1] / f"models/gpt2_{args.gpt2_version}"
+    model_directory = Path(__file__).parents[1] / f'models/gpt2_{args.gpt2_version}'
     if not args.no_download:
         model = download_gpt2_and_load()
     else:
         model = GPTModel(CONFIG[args.gpt2_version])
-        state_dict = torch.load(model_directory / "model.pt")
+        state_dict = torch.load(model_directory / 'model.pt')
         model.load_state_dict(state_dict)
         if args.print_state_dict:
             for key in state_dict.keys():
                 print(key)
 
     if args.no_convert:
-        print("Skipping conversion")
+        print('Skipping conversion')
         return
 
     gpt2_model = convert_ckpt(model)
-    tokenizer = tiktoken.get_encoding("gpt2")
-    input_ids = torch.tensor(tokenizer.encode("Hello, I am")).unsqueeze(0)
+    tokenizer = tiktoken.get_encoding('gpt2')
+    input_ids = torch.tensor(tokenizer.encode('Hello, I am')).unsqueeze(0)
     context_length = gpt2_model.config.context_length  # type: ignore
     output = generate_text_simple(gpt2_model, input_ids, 20, context_length)
     print(token_ids_to_text(output, tokenizer))
     gpt2_model.save_pretrained(model_directory, safe_serialization=args.safetensors)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('gpt2_version', type=str, choices=['124m', '355m', '774m', '1558m'])
     parser.add_argument(
-        "gpt2_version", type=str, choices=["124m", "355m", "774m", "1558m"]
+        '--no-download',
+        action='store_true',
+        help='Convert local model instead of downloading. Rename the ckpt to `model.pth` first and then run this script to convert it.',
     )
     parser.add_argument(
-        "--no-download",
-        action="store_true",
-        help="Convert local model instead of downloading. Rename the ckpt to `model.pth` first and then run this script to convert it.",
+        '--no-convert',
+        action='store_true',
+        help='Only download the model without converting it.',
     )
     parser.add_argument(
-        "--no-convert",
-        action="store_true",
-        help="Only download the model without converting it.",
+        '--safetensors', action='store_true', help='Convert into safetensors format.'
     )
     parser.add_argument(
-        "--safetensors", action="store_true", help="Convert into safetensors format."
-    )
-    parser.add_argument(
-        "--print-state-dict",
-        action="store_true",
-        help="Print the state dict of the raw model.",
+        '--print-state-dict',
+        action='store_true',
+        help='Print the state dict of the raw model.',
     )
 
     args = parser.parse_args()

@@ -1,5 +1,4 @@
-"""
-"""
+""" """
 
 from ..configuration_utils import PreTrainedConfig
 
@@ -21,10 +20,10 @@ class LlamaConfig(PreTrainedConfig):
             to embedding dimension (`embd_dim` in `GPT2Model`).
         intermediate_size (int, default 11008):
             Dimensionality of the hidden layer inside the MLP/FFN block
-            (the expansion size before projecting back to hidden_size). Equivalent to 
+            (the expansion size before projecting back to hidden_size). Equivalent to
             `n_inner` in `GPT2Model`.
         num_hidden_layers (int, default 32):
-            Number of Transformer blocks (depth of the network). Equivalent to `n_layer` 
+            Number of Transformer blocks (depth of the network). Equivalent to `n_layer`
             in `GPT2Model`.
         num_attention_heads (int, default 32):
             Number of query attention heads per Transformer layer. Similar to `n_head` in
@@ -102,6 +101,10 @@ class LlamaConfig(PreTrainedConfig):
         self.bos_token_id = bos_token_id
         self.eos_token_id = eos_token_id
         self._attn_implementation = kwargs.pop('attn_implementation', 'eager')
-        
-        assert self.hidden_size % self.num_attention_heads == 0, f"Hidden size {self.hidden_size} must be divisible by number of attention heads {self.num_attention_heads}"
-        assert self.num_attention_heads % self.num_key_value_heads == 0, f"Number of attention heads {self.num_attention_heads} must be divisible by number of key-value heads {self.num_key_value_heads}"
+
+        assert self.hidden_size % self.num_attention_heads == 0, (
+            f'Hidden size {self.hidden_size} must be divisible by number of attention heads {self.num_attention_heads}'
+        )
+        assert self.num_attention_heads % self.num_key_value_heads == 0, (
+            f'Number of attention heads {self.num_attention_heads} must be divisible by number of key-value heads {self.num_key_value_heads}'
+        )

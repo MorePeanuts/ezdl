@@ -22,3 +22,5 @@ models/**/*.safetensors
 # coding editor
 .zed/
 .vscode/
+
+**/.DS_Store

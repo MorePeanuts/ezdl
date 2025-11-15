@@ -13,8 +13,8 @@ from mini_transformer.models.gpt2 import (
     text_to_token_ids,
     token_ids_to_text,
     calc_accuracy_dataloader,
-    calc_loss_batch, 
-    calc_loss_dataloader
+    calc_loss_batch,
+    calc_loss_dataloader,
 )
 from mini_transformer.data.sms_spam_collection import SMSSpamCollection
 from mini_transformer.data.the_verdict import TheVerdictDataset
@@ -23,19 +23,16 @@ from mini_transformer.data.the_verdict import TheVerdictDataset
 @pytest.fixture
 def tokenizer():
     return tiktoken.get_encoding('gpt2')
-    
-    
+
+
 @pytest.fixture
 def batch_input_ids(tokenizer):
-    txt1 = "Every effort moves you"
-    txt2 = "Every day holds a"
-    batch = torch.tensor([
-        tokenizer.encode(txt1),
-        tokenizer.encode(txt2)
-    ])
+    txt1 = 'Every effort moves you'
+    txt2 = 'Every day holds a'
+    batch = torch.tensor([tokenizer.encode(txt1), tokenizer.encode(txt2)])
     return batch
-    
-    
+
+
 @pytest.fixture
 def sms_input_ids(tokenizer):
     text = (
@@ -44,7 +41,7 @@ def sms_input_ids(tokenizer):
         " selected to receive $1000 cash or a $2000 award.'"
     )
     return torch.tensor(tokenizer.encode(text)).unsqueeze(0)
-    
+
 
 def test_gpt2_layer_norm():
     batch_example = torch.randn(2, 5)
@@ -62,11 +59,11 @@ def test_transformer_block():
     block = GPT2TransformerBlock(GPT2Config())
     output = block(x)
     assert output.shape == x.shape
-    
+
 
 def test_gpt2_model(tokenizer, batch_input_ids):
     assert tuple(batch_input_ids.shape) == (2, 4)
-    
+
     model = GPT2Model.from_default_config()
     model_outputs = model(batch_input_ids)
     assert tuple(model_outputs.shape) == (2, 4, model.config.embd_dim)
@@ -82,30 +79,30 @@ def test_gpt2_124m_memory():
     real_params = total_params - sum(p.numel() for p in model.lm_head.parameters())
     assert real_params == 124_412_160
     total_size_bytes = total_params * 4
-    total_size_mb = total_size_bytes / (1024 ** 2)
+    total_size_mb = total_size_bytes / (1024**2)
     assert abs(total_size_mb - 621.83) < 1e-2
 
 
 def test_generate_text_simple(tokenizer):
-    start_context = "Hello, I am"
+    start_context = 'Hello, I am'
     encoded = tokenizer.encode(start_context)
     encoded_tensor = torch.tensor(encoded).unsqueeze(0)
     assert encoded_tensor.shape == torch.Size((1, 4))
-    
+
     model = GPT2ModelForCausalLM.from_default_config()
     config = model.config
     output = generate_text_simple(
         model=model,
         input_ids=encoded_tensor,
         max_new_tokens=6,
-        context_length=config.context_length
+        context_length=config.context_length,
     )
-    print("Output:", output)
+    print('Output:', output)
     assert tuple(output.shape) == (1, 10)
     decoded_text = tokenizer.decode(output.squeeze(0).tolist())
     print(decoded_text)
-    
-    
+
+
 def test_classificate_text(tokenizer, sms_input_ids):
     model = GPT2ModelForClassification.from_default_config()
     model.eval()
@@ -125,12 +122,12 @@ def test_text_token_ids_transformation(tokenizer):
         model=model,
         input_ids=text_to_token_ids(start_context, tokenizer),
         max_new_tokens=10,
-        context_length=config.context_length
+        context_length=config.context_length,
     )
     output_text = token_ids_to_text(token_ids, tokenizer)
     assert isinstance(output_text, str)
-    
-    
+
+
 def test_calc_acc_dataloader(tokenizer):
     model = GPT2ModelForClassification.from_default_config()
     model.eval()
@@ -139,7 +136,7 @@ def test_calc_acc_dataloader(tokenizer):
     dataloader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
     acc = calc_accuracy_dataloader(dataloader, model, torch.device('cpu'), 10)
     assert acc >= 0 and acc <= 1.0
-    print(f'Acc: {acc*100:.2f}%')
+    print(f'Acc: {acc * 100:.2f}%')
 
 
 def test_calc_loss_generation(tokenizer):
@@ -152,11 +149,11 @@ def test_calc_loss_generation(tokenizer):
     input_batch, target_batch = next(iter(dataloader))
     loss = calc_loss_batch(input_batch, target_batch, model, torch.device('cpu'))
     assert loss.shape == torch.Size([])
-    
+
     avg_loss = calc_loss_dataloader(dataloader, model, torch.device('cpu'), 10)
     assert isinstance(avg_loss, float)
-    
-    
+
+
 def test_calc_loss_classifacation(tokenizer):
     # Test model for classification
     model = GPT2ModelForClassification.from_default_config()
@@ -167,7 +164,6 @@ def test_calc_loss_classifacation(tokenizer):
     input_batch, target_batch = next(iter(dataloader))
     loss = calc_loss_batch(input_batch, target_batch, model, torch.device('cpu'), True)
     assert loss.shape == torch.Size([])
-    
+
     avg_loss = calc_loss_dataloader(dataloader, model, torch.device('cpu'), 10, True)
     assert isinstance(avg_loss, float)
-    

@@ -23,7 +23,7 @@ def plot_loss(
     fig.tight_layout()
     plt.show()
 
-    
+
 def plot_loss_and_acc(
     num_epochs,
     train_losses,
@@ -43,7 +43,7 @@ def plot_loss_and_acc(
         ax0_t = axes[0].twiny()
         ax0_t.plot(np.linspace(0, samples_seen, len(train_losses)), train_losses, alpha=0)
         ax0_t.set_xlabel('Samples seen')
-    
+
     epochs_seen = np.linspace(0, num_epochs, len(train_accs))
     axes[1].plot(epochs_seen, train_accs, label='Training acc')
     axes[1].plot(epochs_seen, eval_accs, linestyle='-.', label='Evaluation acc')
@@ -53,6 +53,6 @@ def plot_loss_and_acc(
         ax1_t = axes[1].twiny()
         ax1_t.plot(np.linspace(0, samples_seen, len(train_accs)), train_accs, alpha=0)
         ax1_t.set_xlabel('Samples seen')
-    
+
     fig.tight_layout()
     plt.show()

@@ -27,7 +27,7 @@ def inputs():
     )
 
 
-def test_self_attention(inputs): 
+def test_self_attention(inputs):
     d_in, d_out = inputs.shape[1], 2
     sa = SelfAttention(d_in, d_out)
     outputs = sa(inputs)
@@ -38,7 +38,7 @@ def test_causal_attention(inputs):
     batch = torch.stack((inputs, inputs), dim=0)
     sequence_length = batch.shape[1]
     d_in, d_out = inputs.shape[1], 2
-    
+
     for context_length in [
         sequence_length,
         sequence_length * 2,
@@ -46,35 +46,45 @@ def test_causal_attention(inputs):
     ]:
         ca = CausalAttention(d_in, d_out, context_length, 0.0)
         outputs = ca(batch)
-        assert tuple(outputs.shape) == (2, sequence_length, d_out), f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+        assert tuple(outputs.shape) == (2, sequence_length, d_out), (
+            f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+        )
 
-    
-@pytest.mark.parametrize('MHA', [
-    MultiHeadAttentionWrapper,
-    MultiHeadAttention,
-    MultiHeadAttentionCombinedQKV,
-    MultiHeadAttentionEinsum,
-])
+
+@pytest.mark.parametrize(
+    'MHA',
+    [
+        MultiHeadAttentionWrapper,
+        MultiHeadAttention,
+        MultiHeadAttentionCombinedQKV,
+        MultiHeadAttentionEinsum,
+    ],
+)
 def test_multi_head_attention(MHA, inputs):
     batch = torch.stack((inputs, inputs), dim=0)
     sequence_length = batch.shape[1]
     d_in, d_out = inputs.shape[1], 4
-    
+
     for context_length in [
         sequence_length,
         sequence_length * 2,
     ]:
         mha = MHA(d_in, d_out, context_length, 0.0, num_heads=2)
         outputs = mha(batch)
-        assert tuple(outputs.shape) == (2, sequence_length, d_out), f'Failed when context_length={context_length} and sequence_length={sequence_length}'
-        
-        
-@pytest.mark.parametrize('MHA', [
-    MultiHeadAttentionWrapper,
-    MultiHeadAttention,
-    MultiHeadAttentionCombinedQKV,
-    MultiHeadAttentionEinsum,
-])
+        assert tuple(outputs.shape) == (2, sequence_length, d_out), (
+            f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+        )
+
+
+@pytest.mark.parametrize(
+    'MHA',
+    [
+        MultiHeadAttentionWrapper,
+        MultiHeadAttention,
+        MultiHeadAttentionCombinedQKV,
+        MultiHeadAttentionEinsum,
+    ],
+)
 @pytest.mark.xfail(reason="The input's sequence length cannot exceed the context length.")
 def test_multi_head_attention_error_case(MHA, inputs):
     batch = torch.stack((inputs, inputs), dim=0)
@@ -83,14 +93,16 @@ def test_multi_head_attention_error_case(MHA, inputs):
     context_length = sequence_length // 2
     mha = MHA(d_in, d_out, context_length, 0.0, num_heads=2)
     outputs = mha(batch)
-    assert tuple(outputs.shape) == (2, sequence_length, d_out), f'Failed when context_length={context_length} and sequence_length={sequence_length}'
-    
+    assert tuple(outputs.shape) == (2, sequence_length, d_out), (
+        f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+    )
+
 
 def test_multi_head_attention_scaled_dot_product(inputs):
     batch = torch.stack((inputs, inputs), dim=0)
     sequence_length = batch.shape[1]
     d_in, d_out = inputs.shape[1], 4
-    
+
     for context_length in [
         sequence_length,
         sequence_length * 2,
@@ -98,15 +110,17 @@ def test_multi_head_attention_scaled_dot_product(inputs):
     ]:
         mha = MultiHeadAttentionScaledDotProduct(d_in, d_out, 0.0, num_heads=2)
         outputs = mha(batch)
-        assert tuple(outputs.shape) == (2, sequence_length, d_out), f'Failed when context_length={context_length} and sequence_length={sequence_length}'
-    
+        assert tuple(outputs.shape) == (2, sequence_length, d_out), (
+            f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+        )
+
 
 def test_multi_head_attention_pytorch(inputs):
     batch = torch.stack((inputs, inputs), dim=0)
     batch = torch.cat((batch, batch), dim=-1)
     sequence_length = batch.shape[1]
     embed_dim = batch.shape[-1]
-    
+
     for context_length in [
         sequence_length,
         sequence_length * 2,
@@ -114,22 +128,24 @@ def test_multi_head_attention_pytorch(inputs):
     ]:
         mha = MultiHeadAttentionPytorch(embed_dim, context_length, 0.0, num_heads=2)
         outputs = mha(batch)
-        assert tuple(outputs.shape) == (2, sequence_length, embed_dim), f'Failed when context_length={context_length} and sequence_length={sequence_length}'
-    
-    
+        assert tuple(outputs.shape) == (2, sequence_length, embed_dim), (
+            f'Failed when context_length={context_length} and sequence_length={sequence_length}'
+        )
+
+
 @pytest.mark.xfail(reason="The input's sequence length cannot exceed the context length.")
 def test_multi_head_attention_pytorch_error_case(inputs):
     batch = torch.stack((inputs, inputs), dim=0)
     batch = torch.cat((batch, batch), dim=-1)
     sequence_length = batch.shape[1]
     embed_dim = batch.shape[-1]
-    
-    context_length = sequence_length // 2,
+
+    context_length = (sequence_length // 2,)
     mha = MultiHeadAttentionPytorch(embed_dim, context_length, 0.0, num_heads=2)
     with pytest.raises(RuntimeError):
         mha(batch)
-    
-    
+
+
 def test_flash_attention_scratch():
     # Set random seed for reproducibility
     torch.manual_seed(42)
@@ -182,15 +198,15 @@ def test_flash_attention_scratch():
         f"Output shapes don't match: {flash_output.shape} vs {standard_output.shape}"
     )
     assert flash_output.shape == (batch_size, seq_length, d_out), (
-        f"Expected output shape {(batch_size, seq_length, d_out)}, got {flash_output.shape}"
+        f'Expected output shape {(batch_size, seq_length, d_out)}, got {flash_output.shape}'
     )
 
-    print("✓ FlashAttentionScratch implementation test passed!")
-    print(f"✓ Input shape: {x.shape}")
-    print(f"✓ Output shape: {flash_output.shape}")
-    print(f"✓ Block size: {block_size}")
-    print(f"✓ Number of heads: {num_heads}")
-    print(f"✓ Head dimension: {d_out // num_heads}")
+    print('✓ FlashAttentionScratch implementation test passed!')
+    print(f'✓ Input shape: {x.shape}')
+    print(f'✓ Output shape: {flash_output.shape}')
+    print(f'✓ Block size: {block_size}')
+    print(f'✓ Number of heads: {num_heads}')
+    print(f'✓ Head dimension: {d_out // num_heads}')
 
     # Test with different block sizes
     for test_block_size in [16, 64, 128]:
@@ -209,8 +225,8 @@ def test_flash_attention_scratch():
             test_output = flash_attn_test(x)
 
         assert test_output.shape == (batch_size, seq_length, d_out), (
-            f"Block size {test_block_size} test failed"
+            f'Block size {test_block_size} test failed'
         )
-        print(f"✓ Block size {test_block_size} test passed")
+        print(f'✓ Block size {test_block_size} test passed')
 
-    print("\n🎉 All FlashAttentionScratch tests completed successfully!")
+    print('\n🎉 All FlashAttentionScratch tests completed successfully!')

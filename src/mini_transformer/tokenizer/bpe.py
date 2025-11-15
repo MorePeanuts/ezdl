@@ -8,24 +8,24 @@ from functools import lru_cache
 
 def BPETokenizerTiktoken(gpt_version: Literal['gpt2', 'gpt4o'] = 'gpt2'):
     """
-    Return a BPE tokenizer implemented by the tiktoken library, 
+    Return a BPE tokenizer implemented by the tiktoken library,
     which can specify the version used by gpt2 or gpt4o.
-    
+
     Args:
         gpt_version (Literal['gpt2', 'gpt4o']): The GPT version to use.
     """
     match gpt_version:
         case 'gpt2':
-            return tiktoken.get_encoding("gpt2")
+            return tiktoken.get_encoding('gpt2')
         case 'gpt4o':
-            return tiktoken.get_encoding("o200k_base")
+            return tiktoken.get_encoding('o200k_base')
 
 
 class BPETokenizerSimple:
     """
     Simple BPE tokenizer implementation.
     """
-    
+
     def __init__(self):
         # Maps token_id to token_str (e.g., {11246: "some"})
         self.vocab: dict[int, str] = {}
@@ -37,84 +37,81 @@ class BPETokenizerSimple:
         # of form {(string_A, string_B): rank}, where lower rank = higher priority
         self.bpe_ranks: dict[tuple[str, str], int] = {}
 
-    def train(self, text: str, vocab_size: int, allowed_special: set[str] = {"<|endoftext|>"}):
+    def train(self, text: str, vocab_size: int, allowed_special: set[str] = {'<|endoftext|>'}):
         """
         Train the BPE tokenizer on the given text from scratch.
-        
+
         Args:
             text (str): The text to train the tokenizer on.
             vocab_size (int): The desired vocabulary size.
             allowed_special (set): A set of special tokens to allow in the vocabulary.
         """
-        
+
         # Preprocess: Replace spaces with "Ġ"
         # Note that Ġ is a particularity of the GPT-2 BPE implementation
         # E.g., "Hello world" might be tokenized as ["Hello", "Ġworld"]
         # (GPT-4 BPE would tokenize it as ["Hello", " world"])
         processed_text = []
         for i, ch in enumerate(text):
-            if ch == " " and i != 0:
-                processed_text.append("Ġ")
-            if ch != " ":
+            if ch == ' ' and i != 0:
+                processed_text.append('Ġ')
+            if ch != ' ':
                 processed_text.append(ch)
-        processed_text = "".join(processed_text)
-        
+        processed_text = ''.join(processed_text)
+
         # Initialize vocab with unique characters, including "Ġ" if present
         # Start with the first 256 ASCII characters
         unique_chars = [chr(i) for i in range(256)]
-        unique_chars.extend(
-            ch for ch in sorted(set(processed_text))
-            if ch not in unique_chars
-        )
-        if "Ġ" not in unique_chars:
-            unique_chars.append("Ġ")
+        unique_chars.extend(ch for ch in sorted(set(processed_text)) if ch not in unique_chars)
+        if 'Ġ' not in unique_chars:
+            unique_chars.append('Ġ')
         self.vocab = {i: ch for i, ch in enumerate(unique_chars)}
         self.inverse_vocab = {ch: i for i, ch in self.vocab.items()}
-        
+
         # Add allowed special tokens
         for token in allowed_special:
             if token not in self.inverse_vocab:
                 new_id = len(self.vocab)
                 self.vocab[new_id] = token
                 self.inverse_vocab[token] = new_id
-                
+
         # Tokenize the processed_text into token IDs
         token_ids = [self.inverse_vocab[ch] for ch in processed_text]
-        
+
         # BPE steps 1-3: Repeatedly find and replace frequent pairs
         for new_id in range(len(self.vocab), vocab_size):
-            pair_id = self.find_freq_pair(token_ids, mode="most")
+            pair_id = self.find_freq_pair(token_ids, mode='most')
             if pair_id is None:
                 break
             token_ids = self.replace_pair(token_ids, pair_id, new_id)
             self.bpe_merges[pair_id] = new_id
-            
+
         # Build the vocabulary with merged tokens
         for (p0, p1), new_id in self.bpe_merges.items():
             merged_token = self.vocab[p0] + self.vocab[p1]
             self.vocab[new_id] = merged_token
             self.inverse_vocab[merged_token] = new_id
-            
+
     @staticmethod
-    def find_freq_pair(token_ids: list[int], mode="most"):
+    def find_freq_pair(token_ids: list[int], mode='most'):
         pairs = Counter(zip(token_ids[:-1], token_ids[1:]))
         if not pairs:
             return None
         match mode:
-            case "most":
+            case 'most':
                 # return max(pairs.items(), key=lambda x: x[1])[0]
                 return pairs.most_common(1)[0][0]
-            case "least":
+            case 'least':
                 # return min(pairs.items(), key=lambda x: x[1])[0]
                 return pairs.most_common()[-1][0]
             case _:
                 raise ValueError("Invalid mode. Choose 'most' or 'least'")
-    
+
     @staticmethod
     def replace_pair(token_ids: list[int], pair_id: tuple[int, int], new_id: int):
         dq = deque(token_ids)
         replaced: list[int] = []
-        
+
         while dq:
             current = dq.popleft()
             if dq and (current, dq[0]) == pair_id:
@@ -122,45 +119,45 @@ class BPETokenizerSimple:
                 dq.popleft()
             else:
                 replaced.append(current)
-        
+
         return replaced
 
     def load_vocab_and_merges_from_gpt2(self, vocab_path, bpe_merges_path):
         """
         Load pre-trained vocabulary and BPE merges from OpenAI's GPT-2 files.
-        
+
         Args:
             vocab_path (str): Path to the vocab file (GPT-2 calls it 'encoder.json' or 'vocab.json').
             bpe_merges_path (str): Path to the bpe_merges file  (GPT-2 calls it 'vocab.bpe' or 'merges.txt').
         """
-        
+
         # Load vocabulary
-        with open(vocab_path, "r", encoding="utf-8") as file:
+        with open(vocab_path, 'r', encoding='utf-8') as file:
             loaded_vocab = json.load(file)
             # Convert loaded vocabulary to correct format
             self.vocab = {int(v): k for k, v in loaded_vocab.items()}
             self.inverse_vocab = {k: int(v) for k, v in loaded_vocab.items()}
 
         # Handle newline character without adding a new token
-        if "\n" not in self.inverse_vocab:
+        if '\n' not in self.inverse_vocab:
             # Use an existing token ID as a placeholder for '\n'
             # Preferentially use "<|endoftext|>" if available
             fallback_token = next(
-                (token for token in ["<|endoftext|>", "Ġ", ""] if token in self.inverse_vocab), None
+                (token for token in ['<|endoftext|>', 'Ġ', ''] if token in self.inverse_vocab), None
             )
             if fallback_token is not None:
                 newline_token_id = self.inverse_vocab[fallback_token]
             else:
                 # If no fallback token is available, raise an error
                 raise KeyError("No suitable token found in vocabulary to map '\\n'.")
-            self.inverse_vocab["\n"] = newline_token_id
-            self.vocab[newline_token_id] = "\n"
-            
+            self.inverse_vocab['\n'] = newline_token_id
+            self.vocab[newline_token_id] = '\n'
+
         # Load GPT-2 merges and store them with an assigned "rank"
         self.bpe_ranks = {}  # reset ranks
-        with open(bpe_merges_path, "r", encoding="utf-8") as file:
+        with open(bpe_merges_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
-            if lines and lines[0].startswith("#"):
+            if lines and lines[0].startswith('#'):
                 lines = lines[1:]
             rank = 0
             for line in lines:
@@ -172,67 +169,69 @@ class BPETokenizerSimple:
                         self.bpe_ranks[(token1, token2)] = rank
                         rank += 1
                     else:
-                        print(f"Skipping pair {pair} as one token is not in the vocabulary.")
+                        print(f'Skipping pair {pair} as one token is not in the vocabulary.')
 
     def encode(self, text: str, allowed_special: set[str] | None = None):
         """
         Encode the input text into a list of token IDs, with tiktoken-style handling of special tokens.
-    
+
         Args:
             text (str): The input text to encode.
             allowed_special (set or None): Special tokens to allow passthrough. If None, special handling is disabled.
-    
+
         Returns:
             List of token IDs.
         """
 
         token_ids: list[int] = []
-        
+
         # If special token handling is enabled
         if allowed_special is not None and len(allowed_special) > 0:
             # Build regex to match allowed special tokens
             special_pattern = (
-                "(" + "|".join(re.escape(tok) for tok in sorted(allowed_special, key=len, reverse=True)) + ")"
+                '('
+                + '|'.join(re.escape(tok) for tok in sorted(allowed_special, key=len, reverse=True))
+                + ')'
             )
             # Encoding text while handling special tokens
             last_index = 0
             for mch in re.finditer(special_pattern, text):
                 prefix = text[last_index : mch.start()]
                 # Encode prefix without special handling
-                token_ids.extend(self.encode(prefix, allowed_special=None))  
+                token_ids.extend(self.encode(prefix, allowed_special=None))
                 # Encode special token
                 special_token = mch.group(0)
                 if special_token in self.inverse_vocab:
                     token_ids.append(self.inverse_vocab[special_token])
                 else:
-                    raise ValueError(f"Special token {special_token} not found in vocabulary.")
+                    raise ValueError(f'Special token {special_token} not found in vocabulary.')
                 last_index = mch.end()
             # Remaining part to process normally
-            text = text[last_index:]  
-            
+            text = text[last_index:]
+
         # If no special tokens, or remaining text after special token split:
         tokens: list[str] = []
-        lines = text.split("\n")
+        lines = text.split('\n')
         for i, line in enumerate(lines):
             if i > 0:
-                tokens.append("\n")
+                tokens.append('\n')
             words = line.split()
             for j, word in enumerate(words):
                 if j == 0 and i > 0:
-                    tokens.append("Ġ" + word)
+                    tokens.append('Ġ' + word)
                 elif j == 0:
                     tokens.append(word)
                 else:
-                    tokens.append("Ġ" + word)
+                    tokens.append('Ġ' + word)
 
         for token in tokens:
             if token in self.inverse_vocab:
                 token_ids.append(self.inverse_vocab[token])
             else:
                 token_ids.extend(self.tokenize_with_bpe(token))
-    
+
         return token_ids
-        
+
     def tokenize_with_bpe(self, token: str):
         """
         Tokenize a single token which is not in vocabulary using BPE merges.
@@ -243,14 +242,14 @@ class BPETokenizerSimple:
         Returns:
             list[int]: The list of token IDs after applying BPE.
         """
-        
+
         # Tokenize the token into individual characters (as initial token IDs)
         raw_token_ids = [self.inverse_vocab.get(ch, None) for ch in token]
         token_ids = [tid for tid in raw_token_ids if tid is not None]
         if None in raw_token_ids:
             missing_chars = [ch for ch, tid in zip(token, raw_token_ids) if tid is None]
-            raise ValueError(f"Characters not found in vocab: {missing_chars}")
-            
+            raise ValueError(f'Characters not found in vocab: {missing_chars}')
+
         # If we haven't loaded OpenAI's GPT-2 merges, use my approach
         if not self.bpe_ranks:
             can_merge = True
@@ -273,7 +272,7 @@ class BPETokenizerSimple:
                     new_tokens.append(token_ids[i])
                 token_ids = new_tokens
             return token_ids
-            
+
         # Otherwise, do GPT-2-style merging with the ranks:
         # 1) Convert token_ids back to string "symbols" for each ID
         symbols = [self.vocab[id_num] for id_num in token_ids]
@@ -324,17 +323,17 @@ class BPETokenizerSimple:
         buffer: list[str] = []
         for i, token_id in enumerate(token_ids):
             if token_id not in self.vocab:
-                raise ValueError(f"Token ID {token_id} not found in vocab.")
+                raise ValueError(f'Token ID {token_id} not found in vocab.')
             token = self.vocab[token_id]
-            if token == "\n":
-                if buffer and not buffer[-1].endswith(" "):
-                    buffer.append(" \n") # Add space if not present before a newline
-            elif token.startswith("Ġ"):
-                buffer.append(" " + token[1:])
+            if token == '\n':
+                if buffer and not buffer[-1].endswith(' '):
+                    buffer.append(' \n')  # Add space if not present before a newline
+            elif token.startswith('Ġ'):
+                buffer.append(' ' + token[1:])
             else:
                 buffer.append(token)
-        return "".join(buffer)
-        
+        return ''.join(buffer)
+
     def save_vocab_and_merges(self, vocab_path, bpe_merges_path):
         """
         Save the vocabulary and BPE merges to JSON files.
@@ -344,15 +343,16 @@ class BPETokenizerSimple:
             bpe_merges_path (str): Path to save the BPE merges.
         """
         # Save vocabulary
-        with open(vocab_path, "w", encoding="utf-8") as file:
+        with open(vocab_path, 'w', encoding='utf-8') as file:
             json.dump(self.vocab, file, ensure_ascii=False, indent=2)
 
         # Save BPE merges as a list of dictionaries
-        with open(bpe_merges_path, "w", encoding="utf-8") as file:
-            merges_list = [{"pair": list(pair), "new_id": new_id}
-                           for pair, new_id in self.bpe_merges.items()]
+        with open(bpe_merges_path, 'w', encoding='utf-8') as file:
+            merges_list = [
+                {'pair': list(pair), 'new_id': new_id} for pair, new_id in self.bpe_merges.items()
+            ]
             json.dump(merges_list, file, ensure_ascii=False, indent=2)
-            
+
     def load_vocab_and_merges(self, vocab_path, bpe_merges_path):
         """
         Load the vocabulary and BPE merges from JSON files.
@@ -362,19 +362,19 @@ class BPETokenizerSimple:
             bpe_merges_path (str): Path to the BPE merges file.
         """
         # Load vocabulary
-        with open(vocab_path, "r", encoding="utf-8") as file:
+        with open(vocab_path, 'r', encoding='utf-8') as file:
             loaded_vocab = json.load(file)
             self.vocab = {int(k): v for k, v in loaded_vocab.items()}
             self.inverse_vocab = {v: int(k) for k, v in loaded_vocab.items()}
 
         # Load BPE merges
-        with open(bpe_merges_path, "r", encoding="utf-8") as file:
+        with open(bpe_merges_path, 'r', encoding='utf-8') as file:
             merges_list = json.load(file)
             for merge in merges_list:
-                pair = tuple(merge["pair"])
-                new_id = merge["new_id"]
+                pair = tuple(merge['pair'])
+                new_id = merge['new_id']
                 self.bpe_merges[pair] = new_id
-                
+
     @lru_cache(maxsize=None)
     def get_special_token_id(self, token):
         """
@@ -392,14 +392,16 @@ class BPETokenizerSimple:
 def BPETokenizerHuggingFace():
     try:
         from transformers import GPT2Tokenizer
+
         return GPT2Tokenizer.from_pretrained('gpt2')
     except ImportError as e:
         raise ImportError('transformers not installed, it is an optional dependency.') from e
-    
-    
+
+
 def BPETokenizerHuggingFaceFast():
     try:
         from transformers import GPT2TokenizerFast
+
         return GPT2TokenizerFast.from_pretrained('gpt2')
     except ImportError as e:
         raise ImportError('transformers not installed, it is an optional dependency.') from e

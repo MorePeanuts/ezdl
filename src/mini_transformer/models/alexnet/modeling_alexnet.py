@@ -6,31 +6,29 @@ from .configuration_alexnet import AlexNetConfig
 
 
 class AlexNetPreTrainedModel(PreTrainedModel):
-    """
-    """
-    
+    """ """
+
     config_class = AlexNetConfig
     base_model_prefix = 'cnn'
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
     def _init_weights(self, module):
         if isinstance(module, nn.Linear | nn.Conv2d):
             nn.init.xavier_uniform_(module.weight)
         else:
             super()._init_weights(module)
-            
-            
+
+
 class AlexNetModel(AlexNetPreTrainedModel):
-    """
-    """
-    
+    """ """
+
     def __init__(self, config: AlexNetConfig):
         super().__init__(config)
-        
+
         c1_in_channels, in_size = config.in_features[0], config.in_features[1:]
-        
+
         self.net = nn.Sequential(
             nn.Conv2d(
                 in_channels=c1_in_channels,
@@ -89,26 +87,24 @@ class AlexNetModel(AlexNetPreTrainedModel):
             nn.Dropout(config.dropout_fc1),
             nn.LazyLinear(out_features=config.fc2_out_features),
             nn.ReLU(),
-            nn.Dropout(config.dropout_fc2)
+            nn.Dropout(config.dropout_fc2),
         )
-        
+
         self.net(torch.randn(1, c1_in_channels, *in_size))
-        
+
     def forward(self, x):
         return self.net(x)
-        
-        
+
+
 class AlexNetModelForClassification(AlexNetPreTrainedModel):
-    """
-    """
-    
+    """ """
+
     def __init__(self, config: AlexNetConfig):
         super().__init__(config)
         self.model = AlexNetModel(config)
         self.head = nn.Linear(config.fc2_out_features, config.num_classes)
-        
+
     def forward(self, x):
         x = self.model(x)
         x = self.head(x)
         return x
-        

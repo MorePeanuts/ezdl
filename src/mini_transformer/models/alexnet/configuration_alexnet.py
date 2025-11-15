@@ -2,11 +2,10 @@ from ..configuration_utils import PreTrainedConfig
 
 
 class AlexNetConfig(PreTrainedConfig):
-    """
-    """
-    
+    """ """
+
     model_type = 'alexnet'
-    
+
     def __init__(
         self,
         num_classes: int = 1000,
