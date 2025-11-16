@@ -1,14 +1,13 @@
 import torch
 import argparse
 import torch.nn as nn
-from typing import Literal, Annotated
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from mini_transformer.trainer import (
     train_regression_model_simple,
     train_classification_model_simple,
 )
-from mini_transformer.data.data_utils import SyntheticRegressionData
+from mini_transformer.data.synthetic_data import SyntheticRegressionData
 from mini_transformer.data.fashion_mnist import FashionMNIST
 from mini_transformer.scratch.linear_model import (
     LinearRegression,
